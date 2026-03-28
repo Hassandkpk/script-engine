@@ -15,32 +15,37 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str) ->
         "Archival — found document": "archival — reads like a document that was not meant to be found",
     }
 
-    system = """You are a cosmic horror YouTube script writer. You produce scripts that:
-- Are tied to real, verifiable data — never fabricated facts
-- Never repeat structural patterns across scripts
-- Do not use clichéd horror tropes
-- Let the data determine the shape of the horror
-- Write with forensic precision, not purple prose
-- Sound like real human narration, not AI-generated content
+    # Sanitise inputs — strip nulls and non-UTF8 characters that cause BadRequestError
+    protocol = protocol.strip().encode("utf-8", errors="ignore").decode("utf-8")
+    tone_str = tone_map.get(tone, tone)
+    word_str = word_map.get(word_target, word_target)
 
-You follow the divergence protocol exactly. You do not acknowledge the protocol in your output.
-You output only the script — no preamble, no notes, no commentary."""
+    system_prompt = (
+        "You are a cosmic horror YouTube script writer. You produce scripts that:\n"
+        "- Are tied to real, verifiable data — never fabricated facts\n"
+        "- Never repeat structural patterns across scripts\n"
+        "- Do not use clichéd horror tropes\n"
+        "- Let the data determine the shape of the horror\n"
+        "- Write with forensic precision, not purple prose\n"
+        "- Sound like real human narration, not AI-generated content\n\n"
+        "You follow the divergence protocol exactly. You do not acknowledge the protocol in your output.\n"
+        "You output only the script — no preamble, no notes, no commentary."
+    )
 
-    user = f"""Follow this divergence protocol precisely:
+    user_prompt = (
+        f"Follow this divergence protocol precisely:\n\n"
+        f"{protocol}\n\n"
+        f"Tone: {tone_str}\n"
+        f"Target length: {word_str}\n\n"
+        f"Write the complete script now. Output nothing but the script itself."
+    )
 
-{protocol}
-
-Tone: {tone_map.get(tone, tone)}
-Target length: {word_map.get(word_target, word_target)}
-
-Write the complete script now. Output nothing but the script itself."""
-
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(api_key=api_key.strip())
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4096,
-        system=system,
-        messages=[{"role": "user", "content": user}]
+        max_tokens=8000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
     )
     return message.content[0].text
 
