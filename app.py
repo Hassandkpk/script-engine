@@ -332,9 +332,10 @@ if page == "Quick Generate":
                 title_input.strip(), script_num, protocol, banned
             )
 
-            with st.spinner("Writing script..."):
+            with st.spinner("Writing script — pass 1 of 2..."):
                 script = generate_script(
-                    protocol_text, word_target, tone, st.session_state.api_key
+                    protocol_text, word_target, tone, st.session_state.api_key,
+                    title=title_input.strip()
                 )
                 st.session_state.simple_script = script
 
@@ -583,8 +584,15 @@ elif page == "Script Generator":
         else:
             with st.spinner("Generating..."):
                 try:
+                    # Extract title from protocol if present
+                    _title = ""
+                    for line in protocol_input.splitlines():
+                        if line.lower().startswith("title:"):
+                            _title = line.split(":", 1)[-1].strip()
+                            break
                     script = generate_script(
-                        protocol_input, word_target, tone, st.session_state.api_key
+                        protocol_input, word_target, tone, st.session_state.api_key,
+                        title=_title
                     )
                     st.session_state.generated_script = script
                 except Exception as e:
