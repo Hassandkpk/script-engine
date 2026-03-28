@@ -14,7 +14,7 @@ st.set_page_config(
 
 from data import ANCHORS, ANGLES, POVS, DISTANCES, PARAS, CONSTRAINTS, DEFAULT_BANS
 from storage import load_data, save_banned, save_script
-from generator import generate_script, generate_titles, generate_protocol_from_title, build_protocol_text
+from generator import generate_script, generate_titles, generate_protocol_from_title, build_protocol_text, generate_section
 from exporter import export_pdf, export_docx
 
 st.markdown("""
@@ -255,6 +255,18 @@ if 'full_generated_script' not in st.session_state:
     st.session_state.full_generated_script = ""
 if 'full_suggested' not in st.session_state:
     st.session_state.full_suggested = None
+if 'full_output_mode' not in st.session_state:
+    st.session_state.full_output_mode = "Full script by sections"
+if 'full_sections' not in st.session_state:
+    st.session_state.full_sections = []        # list of approved section texts
+if 'full_section_pending' not in st.session_state:
+    st.session_state.full_section_pending = "" # current unapproved section
+if 'full_protocol_locked' not in st.session_state:
+    st.session_state.full_protocol_locked = False
+if 'full_protocol_text' not in st.session_state:
+    st.session_state.full_protocol_text = ""
+if 'full_section_num' not in st.session_state:
+    st.session_state.full_section_num = 1
 if 'api_key' not in st.session_state:
     # Try to load from Streamlit secrets (works on Streamlit Cloud and locally via .streamlit/secrets.toml)
     try:
@@ -514,6 +526,24 @@ elif page == "Divergence Protocol":
                 "Archival — found document"
             ], label_visibility="collapsed", key="full_tone")
 
+        # Output mode selector
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='label'>Step 3 — Output mode</div>", unsafe_allow_html=True)
+        output_mode = st.selectbox("Output mode", [
+            "Intro only (200 words) — approve then stop or continue",
+            "Short script (1,000 words) — single pass",
+            "Full script at once (1,700–2,200 words)",
+            "Full script by sections (1,000 words each, approve before next)",
+        ], label_visibility="collapsed", key="output_mode_select")
+        st.session_state.full_output_mode = output_mode
+
+        full_tone = st.selectbox("Horror tone", [
+            "Existential — scale horror",
+            "Forensic — clinical dread",
+            "Intimate — personal wrongness",
+            "Archival — found document"
+        ], label_visibility="collapsed", key="full_tone")
+
         # Ban list preview
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         banned = data.get("banned", [])
@@ -526,80 +556,206 @@ elif page == "Divergence Protocol":
         else:
             st.markdown("<div style='font-size:12px;color:#aaaaaa;'>No bans yet. Go to Anti-Pattern Log to add them.</div>", unsafe_allow_html=True)
 
-        # Generate button
         st.markdown("")
-        if st.button("◈  Generate Script", key="full_gen"):
-            if not st.session_state.api_key:
-                st.error("API key required.")
-            elif not st.session_state.full_anchor.strip():
-                st.error("Anchor is required.")
-            else:
-                protocol = {
-                    "anchor": st.session_state.full_anchor,
-                    "angle": st.session_state.full_angle,
-                    "pov": st.session_state.full_pov,
-                    "distance": st.session_state.full_distance,
-                    "para": st.session_state.full_para,
-                    "constraint": st.session_state.full_constraint,
-                }
-                protocol_text = build_protocol_text(
-                    full_title.strip(), script_num, protocol, banned
-                )
 
-                with st.spinner("Writing script — pass 1 of 2..."):
-                    try:
-                        script = generate_script(
-                            protocol_text, full_word_target, full_tone,
-                            st.session_state.api_key, title=full_title.strip()
-                        )
-                        st.session_state.full_generated_script = script
-                        st.session_state.full_protocol_text = protocol_text
-                        st.session_state.full_word_target_used = full_word_target
-                        st.session_state.full_tone_used = full_tone
-                    except Exception as e:
-                        st.error(f"Generation failed: {str(e)}")
+        # --- GENERATE BUTTON ---
+        if not st.session_state.full_protocol_locked:
+            if st.button("◈  Lock protocol and start generating", key="full_gen"):
+                if not st.session_state.api_key:
+                    st.error("API key required.")
+                elif not st.session_state.full_anchor.strip():
+                    st.error("Anchor is required — analyse a title first.")
+                else:
+                    protocol = {
+                        "anchor": st.session_state.full_anchor,
+                        "angle": st.session_state.full_angle,
+                        "pov": st.session_state.full_pov,
+                        "distance": st.session_state.full_distance,
+                        "para": st.session_state.full_para,
+                        "constraint": st.session_state.full_constraint,
+                    }
+                    protocol_text = build_protocol_text(
+                        full_title.strip(), script_num, protocol, banned
+                    )
+                    st.session_state.full_protocol_text = protocol_text
+                    st.session_state.full_protocol_locked = True
+                    st.session_state.full_sections = []
+                    st.session_state.full_section_pending = ""
+                    st.session_state.full_section_num = 1
+                    st.session_state.full_generated_script = ""
 
-    # Show generated script
-    if st.session_state.get("full_generated_script"):
-        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='label'>Generated script</div>", unsafe_allow_html=True)
-        st.text_area("", value=st.session_state.full_generated_script, height=500,
-                     label_visibility="collapsed", key="full_script_display")
+                    # For non-sectioned modes generate immediately
+                    mode_sel = st.session_state.full_output_mode
+                    if "sections" not in mode_sel:
+                        word_map = {
+                            "Intro only (200 words) — approve then stop or continue": "200 words (intro only)",
+                            "Short script (1,000 words) — single pass": "800–1,000 words (short form)",
+                            "Full script at once (1,700–2,200 words)": "1,700–2,200 words (full script)",
+                        }
+                        wt = word_map.get(mode_sel, "1,700–2,200 words (full script)")
+                        with st.spinner("Writing script — pass 1 of 2..."):
+                            try:
+                                script = generate_script(
+                                    protocol_text, wt, full_tone,
+                                    st.session_state.api_key, title=full_title.strip()
+                                )
+                                st.session_state.full_generated_script = script
+                            except Exception as e:
+                                st.error(f"Generation failed: {str(e)}")
+                                st.session_state.full_protocol_locked = False
+                    else:
+                        # Section mode — generate section 1 immediately
+                        with st.spinner("Writing section 1 of ~14 — pass 1 of 2..."):
+                            try:
+                                section = generate_section(
+                                    protocol_text, full_title.strip(), 1, [],
+                                    st.session_state.api_key
+                                )
+                                st.session_state.full_section_pending = section
+                            except Exception as e:
+                                st.error(f"Generation failed: {str(e)}")
+                                st.session_state.full_protocol_locked = False
+                    st.rerun()
 
-        st.markdown("")
-        col1, col2, col3, col4 = st.columns(4)
+        # --- PROTOCOL LOCKED STATE ---
+        if st.session_state.full_protocol_locked:
+            st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:12px;color:#3a6b3a;margin-bottom:16px;'>✓ Protocol locked — all sections use the same brief</div>", unsafe_allow_html=True)
 
-        with col1:
-            pdf_bytes = export_pdf(st.session_state.full_generated_script, script_num)
-            st.download_button("↓ PDF", pdf_bytes,
-                               file_name=f"script_{script_num:03d}.pdf",
-                               mime="application/pdf", key="full_pdf")
-        with col2:
-            docx_bytes = export_docx(st.session_state.full_generated_script, script_num)
-            st.download_button("↓ Word", docx_bytes,
-                               file_name=f"script_{script_num:03d}.docx",
-                               mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                               key="full_docx")
-        with col3:
-            if st.button("→ Titles", key="full_to_titles"):
-                st.session_state.title_script = st.session_state.full_generated_script
-                st.session_state.mode = "Full"
-                st.rerun()
-        with col4:
-            if st.button("✓ Save", key="full_save"):
-                new_record = {
-                    "id": script_num,
-                    "date": datetime.now().isoformat(),
-                    "protocol": st.session_state.get("full_protocol_text", ""),
-                    "script": st.session_state.full_generated_script,
-                    "anchor": st.session_state.full_anchor,
-                    "pov": st.session_state.full_pov,
-                    "constraint": st.session_state.full_constraint,
-                    "word_target": st.session_state.get("full_word_target_used", ""),
-                    "tone": st.session_state.get("full_tone_used", ""),
-                }
-                save_script(new_record)
-                st.success(f"Script #{script_num:03d} saved.")
+            mode_sel = st.session_state.full_output_mode
+
+            # NON-SECTIONED OUTPUT
+            if "sections" not in mode_sel and st.session_state.full_generated_script:
+                st.markdown("<div class='label'>Generated script</div>", unsafe_allow_html=True)
+                st.text_area("", value=st.session_state.full_generated_script, height=500,
+                             label_visibility="collapsed", key="full_script_display")
+                st.markdown("")
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    pdf_bytes = export_pdf(st.session_state.full_generated_script, script_num)
+                    st.download_button("↓ PDF", pdf_bytes, file_name=f"script_{script_num:03d}.pdf",
+                                       mime="application/pdf", key="full_pdf")
+                with col2:
+                    docx_bytes = export_docx(st.session_state.full_generated_script, script_num)
+                    st.download_button("↓ Word", docx_bytes, file_name=f"script_{script_num:03d}.docx",
+                                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                       key="full_docx")
+                with col3:
+                    if st.button("→ Titles", key="full_to_titles"):
+                        st.session_state.title_script = st.session_state.full_generated_script
+                        st.rerun()
+                with col4:
+                    if st.button("✕ Reset", key="full_reset"):
+                        st.session_state.full_protocol_locked = False
+                        st.session_state.full_generated_script = ""
+                        st.rerun()
+
+            # SECTION MODE OUTPUT
+            elif "sections" in mode_sel:
+                approved = st.session_state.full_sections
+                pending = st.session_state.full_section_pending
+                sec_num = st.session_state.full_section_num
+
+                # Show approved sections
+                if approved:
+                    total_words = sum(len(s.split()) for s in approved)
+                    st.markdown(f"<div class='label'>Approved sections — {len(approved)} sections · ~{total_words:,} words total</div>", unsafe_allow_html=True)
+                    for i, sec in enumerate(approved):
+                        with st.expander(f"Section {i+1} — approved ✓"):
+                            st.text_area("", value=sec, height=200,
+                                         label_visibility="collapsed", key=f"sec_view_{i}")
+
+                # Show pending section for approval
+                if pending:
+                    st.markdown(f"<div class='label'>Section {sec_num} — review before approving</div>", unsafe_allow_html=True)
+                    edited = st.text_area("", value=pending, height=350,
+                                          label_visibility="collapsed", key="sec_pending")
+
+                    col1, col2, col3 = st.columns(3)
+
+                    with col1:
+                        if st.button("✓ Approve — generate next section", key="sec_approve"):
+                            # Auto-save this section
+                            st.session_state.full_sections.append(edited)
+                            new_record = {
+                                "id": script_num,
+                                "date": datetime.now().isoformat(),
+                                "protocol": st.session_state.full_protocol_text,
+                                "script": f"[SECTION {sec_num}]\n\n{edited}",
+                                "anchor": st.session_state.full_anchor,
+                                "pov": st.session_state.full_pov,
+                                "constraint": st.session_state.full_constraint,
+                                "word_target": f"Section {sec_num}",
+                                "tone": full_tone,
+                            }
+                            save_script(new_record)
+                            next_num = sec_num + 1
+                            st.session_state.full_section_num = next_num
+                            st.session_state.full_section_pending = ""
+                            with st.spinner(f"Writing section {next_num} — pass 1 of 2..."):
+                                try:
+                                    section = generate_section(
+                                        st.session_state.full_protocol_text,
+                                        full_title.strip(), next_num,
+                                        st.session_state.full_sections,
+                                        st.session_state.api_key
+                                    )
+                                    st.session_state.full_section_pending = section
+                                except Exception as e:
+                                    st.error(f"Section generation failed: {str(e)}")
+                            st.rerun()
+
+                    with col2:
+                        if st.button("↻ Regenerate this section", key="sec_regen"):
+                            with st.spinner(f"Regenerating section {sec_num}..."):
+                                try:
+                                    section = generate_section(
+                                        st.session_state.full_protocol_text,
+                                        full_title.strip(), sec_num,
+                                        st.session_state.full_sections,
+                                        st.session_state.api_key
+                                    )
+                                    st.session_state.full_section_pending = section
+                                except Exception as e:
+                                    st.error(f"Regeneration failed: {str(e)}")
+                            st.rerun()
+
+                    with col3:
+                        if st.button("⏹ Stop — assemble what I have", key="sec_stop"):
+                            st.session_state.full_sections.append(edited)
+                            st.session_state.full_section_pending = ""
+                            full_assembled = "\n\n".join(st.session_state.full_sections)
+                            st.session_state.full_generated_script = full_assembled
+                            st.rerun()
+
+                # Assembled full script download when done
+                if approved and not pending:
+                    assembled = "\n\n".join(approved)
+                    total_words = len(assembled.split())
+                    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='label'>Full assembled script — ~{total_words:,} words</div>", unsafe_allow_html=True)
+                    st.text_area("", value=assembled, height=300,
+                                 label_visibility="collapsed", key="full_assembled_view")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        pdf_bytes = export_pdf(assembled, script_num)
+                        st.download_button("↓ PDF", pdf_bytes, file_name=f"script_{script_num:03d}_full.pdf",
+                                           mime="application/pdf", key="full_assembled_pdf")
+                    with col2:
+                        docx_bytes = export_docx(assembled, script_num)
+                        st.download_button("↓ Word", docx_bytes, file_name=f"script_{script_num:03d}_full.docx",
+                                           mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                           key="full_assembled_docx")
+                    with col3:
+                        if st.button("✕ Start new script", key="full_new"):
+                            st.session_state.full_protocol_locked = False
+                            st.session_state.full_sections = []
+                            st.session_state.full_section_pending = ""
+                            st.session_state.full_section_num = 1
+                            st.session_state.full_generated_script = ""
+                            st.rerun()
+
+
 
 
 elif page == "Script Generator":
