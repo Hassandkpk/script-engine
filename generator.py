@@ -132,10 +132,41 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict
 
     banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
 
-    system = """You are an expert cosmic horror YouTube script architect. 
-Given a video title, you generate a complete divergence protocol — a pre-script brief that ensures 
+    system = """You are an expert cosmic horror YouTube script architect.
+Given a video title, you generate a complete divergence protocol — a pre-script brief that ensures
 the resulting script is structurally unique, grounded in real data, and avoids all AI default patterns.
-You output only valid JSON. No preamble, no explanation."""
+You output only valid JSON. No preamble, no explanation.
+
+CRITICAL — ANCHOR SELECTION RULE:
+The audience for this channel listens at night. Many listen to sleep. They are not academics.
+They are cosmic horror fans who want to FEEL something, not learn something.
+
+Before choosing any anchor, ask yourself this test:
+"Can someone who has never studied this topic feel dread from this anchor within the first paragraph
+— without needing any explanation first?"
+
+If the answer is NO — if the anchor requires prior knowledge, academic context, or multiple steps
+of reasoning before it produces any feeling — REJECT it and find a different anchor.
+
+GOOD anchors pass the visceral test immediately:
+- Sleep paralysis research (30% of people have experienced it — zero explanation needed)
+- Deep ocean pressure data (steel-crushing depths, things that have never seen light)
+- Brain's response to incomprehensible stimuli (the prefrontal cortex shuts down — personally biological)
+- Infrasound frequencies that trigger dread in mammals (below hearing, felt in the chest)
+- Historical population disappearances (entire communities, no remains, no explanation)
+- Documented cases of people who saw something and refused to describe it
+- Biological anomalies in deep-sea creatures (morphologies that violate expected evolutionary logic)
+- Real archaeological finds with no civilization that could have made them
+
+BAD anchors fail the visceral test:
+- Organizational theory or management science formulas
+- Abstract mathematical proofs
+- Literary theory or philosophical frameworks
+- Economic or political systems
+- Anything requiring the listener to first understand a technical field before feeling anything
+
+The anchor must connect to REAL verifiable data AND produce immediate gut-level unease
+in someone with no prior knowledge of the domain. Both conditions must be satisfied."""
 
     user = f"""Video title: "{title}"
 
@@ -145,17 +176,18 @@ Banned structural moves already used in previous scripts (do not repeat any):
 Generate a divergence protocol for this title. Return a JSON object with exactly these fields:
 
 {{
-  "anchor": "A specific real-world data domain that grounds this topic in verifiable science, history, or data — not vague, very specific",
-  "angle": "The exact cognitive lens that makes this real data feel cosmically wrong or unsettling — one specific sentence",
+  "anchor": "A specific real-world data domain that passes the visceral test — produces immediate dread without explanation, grounded in verifiable science or documented phenomena",
+  "angle": "The exact cognitive lens that makes this real data feel cosmically wrong — one sentence, written so a non-expert immediately understands why it is unsettling",
   "pov": "One of: second person, first person plural (we), third person omniscient restrained, false documentary (field notes), nested narration, no narrator (pure phenomena), first person singular dissolving into report, second person plural",
   "distance": "One of: maximum intimacy, forensic distance, historical distance, dissolving distance (starts far collapses close), unreliable proximity, absolute removal",
   "para": "One of: paragraphs compress as script progresses, alternating long/short rhythm, single unbroken block, each paragraph shorter than previous, fragments only, normal prose fragmenting in final third, paragraphs expand as script progresses, two sentences per paragraph maximum",
   "constraint": "One specific hard constraint that bans a particular writing device or forces an unusual structural rule — must be different from all banned moves listed above",
-  "reasoning": "One sentence explaining why this anchor specifically fits this title"
+  "reasoning": "One sentence explaining why this anchor passes the visceral test for a non-expert listener"
 }}
 
 Rules:
-- The anchor must connect to REAL verifiable data — scientific papers, historical records, measurable phenomena
+- Anchor MUST pass the visceral test — immediate felt dread, no explanation required
+- Anchor must connect to REAL verifiable data — scientific papers, documented phenomena, historical records
 - Do not choose any anchor, POV, or constraint that matches the banned moves list
 - The constraint must be specific and enforceable, not vague
 - Return only the JSON object, nothing else"""
