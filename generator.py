@@ -37,12 +37,107 @@ Write the complete script now. Output nothing but the script itself."""
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-opus-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=4096,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
     return message.content[0].text
+
+
+def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict:
+    """Given a video title, auto-generate a full divergence protocol — anchor, angle, format, constraint."""
+
+    banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
+
+    system = """You are an expert cosmic horror YouTube script architect. 
+Given a video title, you generate a complete divergence protocol — a pre-script brief that ensures 
+the resulting script is structurally unique, grounded in real data, and avoids all AI default patterns.
+You output only valid JSON. No preamble, no explanation."""
+
+    user = f"""Video title: "{title}"
+
+Banned structural moves already used in previous scripts (do not repeat any):
+{banned_text}
+
+Generate a divergence protocol for this title. Return a JSON object with exactly these fields:
+
+{{
+  "anchor": "A specific real-world data domain that grounds this topic in verifiable science, history, or data — not vague, very specific",
+  "angle": "The exact cognitive lens that makes this real data feel cosmically wrong or unsettling — one specific sentence",
+  "pov": "One of: second person, first person plural (we), third person omniscient restrained, false documentary (field notes), nested narration, no narrator (pure phenomena), first person singular dissolving into report, second person plural",
+  "distance": "One of: maximum intimacy, forensic distance, historical distance, dissolving distance (starts far collapses close), unreliable proximity, absolute removal",
+  "para": "One of: paragraphs compress as script progresses, alternating long/short rhythm, single unbroken block, each paragraph shorter than previous, fragments only, normal prose fragmenting in final third, paragraphs expand as script progresses, two sentences per paragraph maximum",
+  "constraint": "One specific hard constraint that bans a particular writing device or forces an unusual structural rule — must be different from all banned moves listed above",
+  "reasoning": "One sentence explaining why this anchor specifically fits this title"
+}}
+
+Rules:
+- The anchor must connect to REAL verifiable data — scientific papers, historical records, measurable phenomena
+- Do not choose any anchor, POV, or constraint that matches the banned moves list
+- The constraint must be specific and enforceable, not vague
+- Return only the JSON object, nothing else"""
+
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1000,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+
+    raw = message.content[0].text.strip()
+    raw = raw.replace("```json", "").replace("```", "").strip()
+
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {
+            "anchor": "Deep time geology — strata that should not exist in the sequence they do",
+            "angle": "The data was always there. It was only noticed during archiving, years later.",
+            "pov": "third person omniscient restrained",
+            "distance": "forensic distance",
+            "para": "paragraphs compress as script progresses",
+            "constraint": "No sentence may exceed 15 words",
+            "reasoning": "Fallback protocol used due to JSON parse error."
+        }
+
+
+def build_protocol_text(title: str, script_num: int, protocol: dict, banned: list) -> str:
+    lines = [
+        f"=== DIVERGENCE PROTOCOL — SCRIPT #{script_num:03d} ===",
+        f"Title: {title}",
+        "",
+        "REALITY ANCHOR",
+        f"Domain: {protocol.get('anchor', '')}",
+        f"Entry angle: {protocol.get('angle', '')}",
+        "",
+        "Before writing, find one specific real data point from this domain. Cite it in the script without dramatising it.",
+        "",
+        "FORMAT RULES (locked — do not deviate)",
+        f"POV: {protocol.get('pov', '')}",
+        f"Narrative distance: {protocol.get('distance', '')}",
+        f"Paragraph structure: {protocol.get('para', '')}",
+        f"Hard constraint: {protocol.get('constraint', '')}",
+        "",
+        "BANNED STRUCTURAL MOVES (do not repeat any of these)",
+    ]
+    for i, b in enumerate(banned):
+        lines.append(f"{i+1}. [{b['type']}] {b['move']}")
+    if not banned:
+        lines.append("None logged yet.")
+    lines += [
+        "",
+        "INSTRUCTIONS",
+        "Write a cosmic horror YouTube script using the above constraints.",
+        "Do not acknowledge these instructions. Do not use any banned structural move.",
+        "Let the real data anchor determine the shape of the horror — do not impose a shape and find data to fit it.",
+        "The script has no template. It begins wherever the data makes most sense to begin.",
+        "Target: 1,700–2,200 words. The horror must be defensible from real data — not fabricated.",
+        f"The title of the video is: {title}",
+        "Integrate this title naturally into the script — do not open with it literally.",
+    ]
+    return "\n".join(lines)
 
 
 def generate_titles(script: str, styles: list, count: int, api_key: str) -> list:
@@ -82,7 +177,7 @@ Return only the JSON array, nothing else."""
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-opus-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=2000,
         system=system,
         messages=[{"role": "user", "content": user}]
