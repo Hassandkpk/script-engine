@@ -235,6 +235,26 @@ if 'simple_title' not in st.session_state:
     st.session_state.simple_title = ""
 if 'mode' not in st.session_state:
     st.session_state.mode = "Simple"
+if 'full_title' not in st.session_state:
+    st.session_state.full_title = ""
+if 'full_anchor' not in st.session_state:
+    st.session_state.full_anchor = ""
+if 'full_angle' not in st.session_state:
+    st.session_state.full_angle = ""
+if 'full_pov' not in st.session_state:
+    st.session_state.full_pov = ""
+if 'full_distance' not in st.session_state:
+    st.session_state.full_distance = ""
+if 'full_para' not in st.session_state:
+    st.session_state.full_para = ""
+if 'full_constraint' not in st.session_state:
+    st.session_state.full_constraint = ""
+if 'full_reasoning' not in st.session_state:
+    st.session_state.full_reasoning = ""
+if 'full_generated_script' not in st.session_state:
+    st.session_state.full_generated_script = ""
+if 'full_suggested' not in st.session_state:
+    st.session_state.full_suggested = None
 if 'api_key' not in st.session_state:
     # Try to load from Streamlit secrets (works on Streamlit Cloud and locally via .streamlit/secrets.toml)
     try:
@@ -392,251 +412,202 @@ if page == "Quick Generate":
 
 
 elif page == "Divergence Protocol":
-    st.markdown("# DIVERGENCE PROTOCOL")
-    st.markdown("<div class='label'>Build your pre-script brief — complete all four steps before writing</div>", unsafe_allow_html=True)
-    st.markdown("")
-
-    tab1, tab2, tab3, tab4 = st.tabs(["01 · REALITY ANCHOR", "02 · FORMAT RULES", "03 · ANTI-PATTERN LOG", "04 · GENERATE BRIEF"])
-
-    with tab1:
-        st.markdown("")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("<div class='label'>Data domain</div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:13px;color:#6a6a6a;line-height:1.7;margin-bottom:16px;'>Each script needs a different category of real-world data as its foundation. Roll a domain, then find one specific data point inside it before writing a word.</div>", unsafe_allow_html=True)
-            if st.button("↻  Roll domain", key="roll_anchor"):
-                st.session_state.anchor = random.choice(ANCHORS)
-            if st.session_state.anchor:
-                st.markdown(f"<div class='result-text'>{st.session_state.anchor}</div>", unsafe_allow_html=True)
-            custom_anchor = st.text_area("Or write your own anchor:", height=80, key="custom_anchor")
-            if custom_anchor:
-                st.session_state.anchor = custom_anchor
-
-        with col2:
-            st.markdown("<div class='label'>Entry angle</div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:13px;color:#6a6a6a;line-height:1.7;margin-bottom:16px;'>The anchor is the what. The angle is how you enter it — the specific lens that makes real data feel cosmically wrong.</div>", unsafe_allow_html=True)
-            if st.button("↻  Roll angle", key="roll_angle"):
-                st.session_state.angle = random.choice(ANGLES)
-            if st.session_state.angle:
-                st.markdown(f"<div class='result-text'>{st.session_state.angle}</div>", unsafe_allow_html=True)
-            custom_angle = st.text_area("Or write your own angle:", height=80, key="custom_angle")
-            if custom_angle:
-                st.session_state.angle = custom_angle
-
-    with tab2:
-        st.markdown("")
-        if st.button("↻  Roll all constraints", key="roll_all"):
-            st.session_state.pov = random.choice(POVS)
-            st.session_state.distance = random.choice(DISTANCES)
-            st.session_state.para = random.choice(PARAS)
-            st.session_state.constraint = random.choice(CONSTRAINTS)
-
-        st.markdown("")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("<div class='label'>Point of view</div>", unsafe_allow_html=True)
-            pov_choice = st.selectbox("POV", POVS, index=POVS.index(st.session_state.pov) if st.session_state.pov in POVS else 0, label_visibility="collapsed")
-            st.session_state.pov = pov_choice
-            st.markdown("")
-
-            st.markdown("<div class='label'>Narrative distance</div>", unsafe_allow_html=True)
-            dist_choice = st.selectbox("Distance", DISTANCES, index=DISTANCES.index(st.session_state.distance) if st.session_state.distance in DISTANCES else 0, label_visibility="collapsed")
-            st.session_state.distance = dist_choice
-
-        with col2:
-            st.markdown("<div class='label'>Paragraph structure</div>", unsafe_allow_html=True)
-            para_choice = st.selectbox("Para", PARAS, index=PARAS.index(st.session_state.para) if st.session_state.para in PARAS else 0, label_visibility="collapsed")
-            st.session_state.para = para_choice
-            st.markdown("")
-
-            st.markdown("<div class='label'>Hard constraint</div>", unsafe_allow_html=True)
-            constraint_choice = st.selectbox("Constraint", CONSTRAINTS, index=CONSTRAINTS.index(st.session_state.constraint) if st.session_state.constraint in CONSTRAINTS else 0, label_visibility="collapsed")
-            st.session_state.constraint = constraint_choice
-
-    with tab3:
-        st.markdown("")
-        banned = data.get("banned", [])
-
-        col1, col2 = st.columns([3, 1])
-        with col2:
-            if st.button("Load default bans"):
-                existing = [b["move"] for b in banned]
-                added = 0
-                for b in DEFAULT_BANS:
-                    if b["move"] not in existing:
-                        banned.append(b)
-                        added += 1
-                data["banned"] = banned
-                save_banned(banned)
-                st.success(f"Added {added} default bans.")
-                st.rerun()
-
-        if banned:
-            for i, b in enumerate(banned):
-                c1, c2, c3 = st.columns([1, 5, 1])
-                with c1:
-                    st.markdown(f"<span class='tag'>{b['type'].upper()}</span>", unsafe_allow_html=True)
-                with c2:
-                    st.markdown(f"<span style='font-size:13px;'>{b['move']}</span>", unsafe_allow_html=True)
-                with c3:
-                    if st.button("✕", key=f"del_{i}"):
-                        banned.pop(i)
-                        data["banned"] = banned
-                        save_banned(banned)
-                        st.rerun()
-        else:
-            st.markdown("<div style='color:#aaaaaa;font-size:13px;padding:20px 0;'>No moves logged yet. Add below or load defaults.</div>", unsafe_allow_html=True)
-
-        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='label'>Add new banned move</div>", unsafe_allow_html=True)
-        col1, col2, col3 = st.columns([4, 2, 1])
-        with col1:
-            new_move = st.text_input("Move description", placeholder="Describe the structural move used...", label_visibility="collapsed")
-        with col2:
-            move_type = st.selectbox("Type", ["opening", "structure", "pov", "device", "ending"], label_visibility="collapsed")
-        with col3:
-            if st.button("Add"):
-                if new_move.strip():
-                    banned.append({"move": new_move.strip(), "type": move_type})
-                    data["banned"] = banned
-                    save_banned(banned)
-                    st.rerun()
-
-    with tab4:
-        st.markdown("")
-        st.markdown("<div class='label'>Pre-script brief</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:13px;color:#6a6a6a;line-height:1.7;margin-bottom:20px;'>This document replaces all templates. Paste it into the Script Generator tab — or copy it to use externally.</div>", unsafe_allow_html=True)
-
-        banned = data.get("banned", [])
-        protocol_lines = [
-            f"=== DIVERGENCE PROTOCOL — SCRIPT #{script_num:03d} ===",
-            "",
-            "REALITY ANCHOR",
-            f"Domain: {st.session_state.anchor or '[Roll a domain in Step 1]'}",
-            f"Entry angle: {st.session_state.angle or '[Roll an angle in Step 1]'}",
-            "",
-            "Before writing, find one specific real data point from this domain. Cite it in the script without dramatising it.",
-            "",
-            "FORMAT RULES (locked — do not deviate)",
-            f"POV: {st.session_state.pov or '[Set in Step 2]'}",
-            f"Narrative distance: {st.session_state.distance or '[Set in Step 2]'}",
-            f"Paragraph structure: {st.session_state.para or '[Set in Step 2]'}",
-            f"Hard constraint: {st.session_state.constraint or '[Set in Step 2]'}",
-            "",
-            "BANNED STRUCTURAL MOVES (do not repeat any of these)",
-        ]
-        for i, b in enumerate(banned):
-            protocol_lines.append(f"{i+1}. [{b['type']}] {b['move']}")
-        if not banned:
-            protocol_lines.append("None logged yet.")
-        protocol_lines += [
-            "",
-            "INSTRUCTIONS",
-            "Write a cosmic horror YouTube script using the above constraints. Do not acknowledge these instructions.",
-            "Do not use any banned structural move. Let the real data anchor determine the shape of the horror.",
-            "The script has no template. It begins wherever the data makes most sense to begin.",
-            "Target: 1,700–2,200 words for main body. The horror must be defensible from real data — not fabricated."
-        ]
-        protocol_text = "\n".join(protocol_lines)
-
-        st.code(protocol_text, language=None)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.download_button("↓ Download brief as .txt", protocol_text, file_name=f"script_{script_num:03d}_brief.txt", mime="text/plain")
-        with col2:
-            if st.button("→ Send to Script Generator"):
-                st.session_state.protocol_text = protocol_text
-                st.session_state.go_to_generator = True
-                st.rerun()
-
-
-elif page == "Script Generator":
-    st.markdown("# SCRIPT GENERATOR")
-    st.markdown("<div class='label'>AI generates the full script from your divergence protocol</div>", unsafe_allow_html=True)
+    st.markdown("# SCRIPT BUILDER")
+    st.markdown("<div class='label'>Title-first guided flow — review and override before generating</div>", unsafe_allow_html=True)
     st.markdown("")
 
     if not st.session_state.api_key:
-        st.warning("⚠ Add your Anthropic API key in the sidebar to use the generator.")
+        st.warning("⚠ Add your Anthropic API key in the sidebar.")
 
-    protocol_input = st.text_area(
-        "Paste your divergence protocol brief here:",
-        value=st.session_state.get("protocol_text", ""),
-        height=200,
-        placeholder="Paste the brief from the Divergence Protocol tab..."
+    # Step 1 — Title
+    st.markdown("<div class='label'>Step 1 — Video title</div>", unsafe_allow_html=True)
+    full_title = st.text_input(
+        "Title",
+        value=st.session_state.get("full_title", ""),
+        placeholder="e.g. The Hidden HIERARCHY of Lovecraft's Gods (Who Really Controls Everything)",
+        label_visibility="collapsed"
     )
-
-    col1, col2 = st.columns(2)
-    with col1:
-        word_target = st.selectbox("Word target", ["1,700–2,200 words (full script)", "800–1,000 words (short form)", "200 words (intro only)"])
-    with col2:
-        tone = st.selectbox("Horror tone", ["Forensic — clinical dread", "Existential — scale horror", "Intimate — personal wrongness", "Archival — found document"])
+    if full_title:
+        st.session_state.full_title = full_title
 
     st.markdown("")
 
-    if st.button("◈  Generate Script", key="gen_script"):
+    if st.button("◈  Analyse title and suggest protocol", key="analyse_title"):
         if not st.session_state.api_key:
             st.error("API key required.")
-        elif not protocol_input.strip():
-            st.error("Paste a divergence protocol brief first.")
+        elif not full_title.strip():
+            st.error("Enter a title first.")
         else:
-            with st.spinner("Generating..."):
-                try:
-                    # Extract title from protocol if present
-                    _title = ""
-                    for line in protocol_input.splitlines():
-                        if line.lower().startswith("title:"):
-                            _title = line.split(":", 1)[-1].strip()
-                            break
-                    script = generate_script(
-                        protocol_input, word_target, tone, st.session_state.api_key,
-                        title=_title
-                    )
-                    st.session_state.generated_script = script
-                except Exception as e:
-                    st.error(f"Generation failed: {str(e)}")
+            banned = data.get("banned", [])
+            with st.spinner("Analysing title and building suggestions..."):
+                suggested = generate_protocol_from_title(
+                    full_title.strip(), banned, st.session_state.api_key
+                )
+                st.session_state.full_suggested = suggested
+                st.session_state.full_anchor = suggested.get("anchor", "")
+                st.session_state.full_angle = suggested.get("angle", "")
+                st.session_state.full_pov = suggested.get("pov", "")
+                st.session_state.full_distance = suggested.get("distance", "")
+                st.session_state.full_para = suggested.get("para", "")
+                st.session_state.full_constraint = suggested.get("constraint", "")
+                st.session_state.full_reasoning = suggested.get("reasoning", "")
 
-    if st.session_state.generated_script:
+    # Show suggestions if available
+    if st.session_state.get("full_anchor"):
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='label'>Generated script</div>", unsafe_allow_html=True)
-        script_area = st.text_area("", value=st.session_state.generated_script, height=500, label_visibility="collapsed")
+        st.markdown("<div class='label'>Step 2 — Review and override suggestions</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:13px;color:#6a6a6a;margin-bottom:20px;'>The tool analysed your title and pre-filled everything below. Change anything before generating — or accept as is.</div>", unsafe_allow_html=True)
+
+        # Reasoning
+        if st.session_state.get("full_reasoning"):
+            st.markdown(f"<div style='font-size:12px;color:#6a6a6a;font-style:italic;margin-bottom:20px;padding:10px;background:#f8f8f6;border-left:2px solid #e0ddd4;'>◈ Why this anchor was chosen: {st.session_state.full_reasoning}</div>", unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("<div class='label'>Reality anchor</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:12px;color:#6a6a6a;margin-bottom:8px;'>The real-world data this script is grounded in. Must produce immediate dread — no explanation needed.</div>", unsafe_allow_html=True)
+            full_anchor = st.text_area("Anchor", value=st.session_state.full_anchor, height=100, label_visibility="collapsed", key="ta_anchor")
+            st.session_state.full_anchor = full_anchor
+
+            st.markdown("")
+            st.markdown("<div class='label'>Entry angle</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:12px;color:#6a6a6a;margin-bottom:8px;'>The specific lens that makes this data feel cosmically wrong.</div>", unsafe_allow_html=True)
+            full_angle = st.text_area("Angle", value=st.session_state.full_angle, height=100, label_visibility="collapsed", key="ta_angle")
+            st.session_state.full_angle = full_angle
+
+            st.markdown("")
+            st.markdown("<div class='label'>Hard constraint</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:12px;color:#6a6a6a;margin-bottom:8px;'>One banned device or forced structural rule for this script only.</div>", unsafe_allow_html=True)
+            full_constraint = st.text_area("Constraint", value=st.session_state.full_constraint, height=80, label_visibility="collapsed", key="ta_constraint")
+            st.session_state.full_constraint = full_constraint
+
+        with col2:
+            st.markdown("<div class='label'>Point of view</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:12px;color:#6a6a6a;margin-bottom:8px;'>Who is narrating and how.</div>", unsafe_allow_html=True)
+            full_pov = st.text_area("POV", value=st.session_state.full_pov, height=80, label_visibility="collapsed", key="ta_pov")
+            st.session_state.full_pov = full_pov
+
+            st.markdown("")
+            st.markdown("<div class='label'>Narrative distance</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:12px;color:#6a6a6a;margin-bottom:8px;'>How close the narrator is to the subject.</div>", unsafe_allow_html=True)
+            full_distance = st.text_area("Distance", value=st.session_state.full_distance, height=80, label_visibility="collapsed", key="ta_distance")
+            st.session_state.full_distance = full_distance
+
+            st.markdown("")
+            st.markdown("<div class='label'>Paragraph structure</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:12px;color:#6a6a6a;margin-bottom:8px;'>How paragraphs are shaped across the script.</div>", unsafe_allow_html=True)
+            full_para = st.text_area("Para", value=st.session_state.full_para, height=80, label_visibility="collapsed", key="ta_para")
+            st.session_state.full_para = full_para
+
+            st.markdown("")
+            st.markdown("<div class='label'>Word target & tone</div>", unsafe_allow_html=True)
+            full_word_target = st.selectbox("Length", [
+                "1,700–2,200 words (full script)",
+                "800–1,000 words (short form)",
+                "200 words (intro only)"
+            ], label_visibility="collapsed", key="full_word_target")
+            full_tone = st.selectbox("Tone", [
+                "Existential — scale horror",
+                "Forensic — clinical dread",
+                "Intimate — personal wrongness",
+                "Archival — found document"
+            ], label_visibility="collapsed", key="full_tone")
+
+        # Ban list preview
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        banned = data.get("banned", [])
+        st.markdown(f"<div class='label'>Active ban list — {len(banned)} moves</div>", unsafe_allow_html=True)
+        if banned:
+            ban_preview = " · ".join([f"<span class='tag'>{b['type'].upper()}</span> {b['move']}" for b in banned[:5]])
+            if len(banned) > 5:
+                ban_preview += f" <span style='color:#aaaaaa;font-size:12px;'>+{len(banned)-5} more (see Anti-Pattern Log)</span>"
+            st.markdown(f"<div style='font-size:12px;color:#6a6a6a;line-height:2;'>{ban_preview}</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='font-size:12px;color:#aaaaaa;'>No bans yet. Go to Anti-Pattern Log to add them.</div>", unsafe_allow_html=True)
+
+        # Generate button
+        st.markdown("")
+        if st.button("◈  Generate Script", key="full_gen"):
+            if not st.session_state.api_key:
+                st.error("API key required.")
+            elif not st.session_state.full_anchor.strip():
+                st.error("Anchor is required.")
+            else:
+                protocol = {
+                    "anchor": st.session_state.full_anchor,
+                    "angle": st.session_state.full_angle,
+                    "pov": st.session_state.full_pov,
+                    "distance": st.session_state.full_distance,
+                    "para": st.session_state.full_para,
+                    "constraint": st.session_state.full_constraint,
+                }
+                protocol_text = build_protocol_text(
+                    full_title.strip(), script_num, protocol, banned
+                )
+
+                with st.spinner("Writing script — pass 1 of 2..."):
+                    try:
+                        script = generate_script(
+                            protocol_text, full_word_target, full_tone,
+                            st.session_state.api_key, title=full_title.strip()
+                        )
+                        st.session_state.full_generated_script = script
+                        st.session_state.full_protocol_text = protocol_text
+                        st.session_state.full_word_target_used = full_word_target
+                        st.session_state.full_tone_used = full_tone
+                    except Exception as e:
+                        st.error(f"Generation failed: {str(e)}")
+
+    # Show generated script
+    if st.session_state.get("full_generated_script"):
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='label'>Generated script</div>", unsafe_allow_html=True)
+        st.text_area("", value=st.session_state.full_generated_script, height=500,
+                     label_visibility="collapsed", key="full_script_display")
 
         st.markdown("")
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            if st.button("↓ Export PDF"):
-                pdf_bytes = export_pdf(st.session_state.generated_script, script_num)
-                st.download_button("Download PDF", pdf_bytes, file_name=f"script_{script_num:03d}.pdf", mime="application/pdf")
-
+            pdf_bytes = export_pdf(st.session_state.full_generated_script, script_num)
+            st.download_button("↓ PDF", pdf_bytes,
+                               file_name=f"script_{script_num:03d}.pdf",
+                               mime="application/pdf", key="full_pdf")
         with col2:
-            if st.button("↓ Export Word"):
-                docx_bytes = export_docx(st.session_state.generated_script, script_num)
-                st.download_button("Download .docx", docx_bytes, file_name=f"script_{script_num:03d}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-
+            docx_bytes = export_docx(st.session_state.full_generated_script, script_num)
+            st.download_button("↓ Word", docx_bytes,
+                               file_name=f"script_{script_num:03d}.docx",
+                               mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                               key="full_docx")
         with col3:
-            if st.button("→ Generate Titles"):
-                st.session_state.go_to_titles = True
-                st.session_state.title_script = st.session_state.generated_script
+            if st.button("→ Titles", key="full_to_titles"):
+                st.session_state.title_script = st.session_state.full_generated_script
+                st.session_state.mode = "Full"
                 st.rerun()
-
         with col4:
-            if st.button("✓ Save to History"):
+            if st.button("✓ Save", key="full_save"):
                 new_record = {
                     "id": script_num,
                     "date": datetime.now().isoformat(),
-                    "protocol": protocol_input,
-                    "script": st.session_state.generated_script,
-                    "anchor": st.session_state.anchor,
-                    "pov": st.session_state.pov,
-                    "constraint": st.session_state.constraint,
-                    "word_target": word_target,
-                    "tone": tone
+                    "protocol": st.session_state.get("full_protocol_text", ""),
+                    "script": st.session_state.full_generated_script,
+                    "anchor": st.session_state.full_anchor,
+                    "pov": st.session_state.full_pov,
+                    "constraint": st.session_state.full_constraint,
+                    "word_target": st.session_state.get("full_word_target_used", ""),
+                    "tone": st.session_state.get("full_tone_used", ""),
                 }
                 save_script(new_record)
                 st.success(f"Script #{script_num:03d} saved.")
+
+
+elif page == "Script Generator":
+    # Redirect to Divergence Protocol in full mode — they are now the same page
+    st.markdown("# SCRIPT BUILDER")
+    st.markdown("<div style='font-size:13px;color:#6a6a6a;'>The Script Generator is now part of the Divergence Protocol page. Go to <b>Divergence Protocol</b> in the sidebar to build and generate your script from a title.</div>", unsafe_allow_html=True)
+
+
 
 
 elif page == "Title Machine":
