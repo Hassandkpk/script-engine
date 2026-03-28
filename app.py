@@ -14,7 +14,7 @@ st.set_page_config(
 
 from data import ANCHORS, ANGLES, POVS, DISTANCES, PARAS, CONSTRAINTS, DEFAULT_BANS
 from storage import load_data, save_banned, save_script
-from generator import generate_script, generate_titles
+from generator import generate_script, generate_titles, generate_protocol_from_title, build_protocol_text
 from exporter import export_pdf, export_docx
 
 st.markdown("""
@@ -227,6 +227,14 @@ if 'generated_script' not in st.session_state:
     st.session_state.generated_script = ""
 if 'generated_titles' not in st.session_state:
     st.session_state.generated_titles = []
+if 'simple_protocol' not in st.session_state:
+    st.session_state.simple_protocol = None
+if 'simple_script' not in st.session_state:
+    st.session_state.simple_script = ""
+if 'simple_title' not in st.session_state:
+    st.session_state.simple_title = ""
+if 'mode' not in st.session_state:
+    st.session_state.mode = "Simple"
 if 'api_key' not in st.session_state:
     # Try to load from Streamlit secrets (works on Streamlit Cloud and locally via .streamlit/secrets.toml)
     try:
@@ -255,6 +263,11 @@ with st.sidebar:
 
     st.markdown("---")
 
+    mode = st.radio("Mode", ["Simple", "Full"], index=0 if st.session_state.mode == "Simple" else 1, horizontal=True)
+    st.session_state.mode = mode
+
+    st.markdown("---")
+
     script_num = len(data.get("scripts", [])) + 1
     st.markdown(f"<div class='label'>Next script</div><div style='font-size:28px;font-family:Bebas Neue,sans-serif;color:#1a1a1a;letter-spacing:0.1em;'>#{script_num:03d}</div>", unsafe_allow_html=True)
 
@@ -262,10 +275,122 @@ with st.sidebar:
     st.markdown(f"<div class='label' style='margin-top:16px;'>Banned moves</div><div style='font-size:28px;font-family:Bebas Neue,sans-serif;color:#1a1a1a;letter-spacing:0.1em;'>{bans_count}</div>", unsafe_allow_html=True)
 
     st.markdown("---")
-    page = st.radio("", ["Divergence Protocol", "Script Generator", "Title Machine", "Script History", "Anti-Pattern Log"], label_visibility="collapsed")
+
+    if st.session_state.mode == "Simple":
+        page = st.radio("", ["Quick Generate", "Script History"], label_visibility="collapsed")
+    else:
+        page = st.radio("", ["Divergence Protocol", "Script Generator", "Title Machine", "Script History", "Anti-Pattern Log"], label_visibility="collapsed")
 
 
-if page == "Divergence Protocol":
+if page == "Quick Generate":
+    st.markdown("# QUICK GENERATE")
+    st.markdown("<div class='label'>Paste a title — the system does the rest</div>", unsafe_allow_html=True)
+    st.markdown("")
+
+    if not st.session_state.api_key:
+        st.warning("⚠ Add your Anthropic API key in the sidebar.")
+
+    title_input = st.text_input(
+        "Video title",
+        placeholder="e.g. The Hidden HIERARCHY of Lovecraft's Gods (Who Really Controls Everything)",
+        label_visibility="collapsed"
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        word_target = st.selectbox("Length", [
+            "1,700–2,200 words (full script)",
+            "800–1,000 words (short form)",
+            "200 words (intro only)"
+        ])
+    with col2:
+        tone = st.selectbox("Tone", [
+            "Existential — scale horror",
+            "Forensic — clinical dread",
+            "Intimate — personal wrongness",
+            "Archival — found document"
+        ])
+
+    st.markdown("")
+
+    if st.button("◈  Generate Script", key="simple_gen"):
+        if not st.session_state.api_key:
+            st.error("API key required.")
+        elif not title_input.strip():
+            st.error("Paste a video title first.")
+        else:
+            banned = data.get("banned", [])
+
+            with st.spinner("Building protocol from title..."):
+                protocol = generate_protocol_from_title(
+                    title_input.strip(), banned, st.session_state.api_key
+                )
+                st.session_state.simple_protocol = protocol
+                st.session_state.simple_title = title_input.strip()
+
+            protocol_text = build_protocol_text(
+                title_input.strip(), script_num, protocol, banned
+            )
+
+            with st.spinner("Writing script..."):
+                script = generate_script(
+                    protocol_text, word_target, tone, st.session_state.api_key
+                )
+                st.session_state.simple_script = script
+
+            # Auto-save to history
+            new_record = {
+                "id": script_num,
+                "date": datetime.now().isoformat(),
+                "protocol": protocol_text,
+                "script": script,
+                "anchor": protocol.get("anchor", ""),
+                "pov": protocol.get("pov", ""),
+                "constraint": protocol.get("constraint", ""),
+                "word_target": word_target,
+                "tone": tone,
+            }
+            save_script(new_record)
+            st.rerun()
+
+    if st.session_state.simple_script:
+        st.markdown("<hr style='border:none;border-top:1px solid #e0ddd4;margin:24px 0;'>", unsafe_allow_html=True)
+
+        # Show what the system auto-selected
+        if st.session_state.simple_protocol:
+            p = st.session_state.simple_protocol
+            with st.expander("◈ View auto-generated protocol (what ran behind the scenes)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"<div class='label'>Reality anchor</div><div style='font-size:13px;line-height:1.7;margin-bottom:16px;'>{p.get('anchor','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='label'>Entry angle</div><div style='font-size:13px;line-height:1.7;margin-bottom:16px;'>{p.get('angle','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='label'>Why this anchor</div><div style='font-size:13px;line-height:1.7;color:#6a6a6a;'>{p.get('reasoning','')}</div>", unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"<div class='label'>POV</div><div style='font-size:13px;margin-bottom:12px;'>{p.get('pov','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='label'>Distance</div><div style='font-size:13px;margin-bottom:12px;'>{p.get('distance','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='label'>Structure</div><div style='font-size:13px;margin-bottom:12px;'>{p.get('para','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='label'>Hard constraint</div><div style='font-size:13px;'>{p.get('constraint','')}</div>", unsafe_allow_html=True)
+
+        st.markdown(f"<div class='label'>Generated script — auto-saved as #{script_num-1:03d}</div>", unsafe_allow_html=True)
+        st.text_area("", value=st.session_state.simple_script, height=500, label_visibility="collapsed", key="simple_script_area")
+
+        st.markdown("")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            pdf_bytes = export_pdf(st.session_state.simple_script, script_num - 1)
+            st.download_button("↓ Export PDF", pdf_bytes, file_name=f"script_{script_num-1:03d}.pdf", mime="application/pdf")
+        with col2:
+            docx_bytes = export_docx(st.session_state.simple_script, script_num - 1)
+            st.download_button("↓ Export Word", docx_bytes, file_name=f"script_{script_num-1:03d}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        with col3:
+            if st.button("→ Generate Titles"):
+                st.session_state.go_to_titles = True
+                st.session_state.title_script = st.session_state.simple_script
+                st.session_state.mode = "Full"
+                st.rerun()
+
+
+elif page == "Divergence Protocol":
     st.markdown("# DIVERGENCE PROTOCOL")
     st.markdown("<div class='label'>Build your pre-script brief — complete all four steps before writing</div>", unsafe_allow_html=True)
     st.markdown("")
@@ -457,10 +582,13 @@ elif page == "Script Generator":
             st.error("Paste a divergence protocol brief first.")
         else:
             with st.spinner("Generating..."):
-                script = generate_script(
-                    protocol_input, word_target, tone, st.session_state.api_key
-                )
-                st.session_state.generated_script = script
+                try:
+                    script = generate_script(
+                        protocol_input, word_target, tone, st.session_state.api_key
+                    )
+                    st.session_state.generated_script = script
+                except Exception as e:
+                    st.error(f"Generation failed: {str(e)}")
 
     if st.session_state.generated_script:
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
