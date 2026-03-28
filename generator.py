@@ -2,7 +2,79 @@ import anthropic
 import json
 
 
-def generate_script(protocol: str, word_target: str, tone: str, api_key: str) -> str:
+def apply_voice_filter(raw_script: str, title: str, api_key: str) -> str:
+    """
+    Second-pass rewrite. Takes the divergence protocol output and translates it
+    into a script that works for a listening audience — without copying any
+    specific style, only applying listenable principles.
+    """
+
+    system_prompt = (
+        "You are a senior script editor for a cosmic horror YouTube channel. "
+        "Your audience listens — they do not read. Many listen at night, many are trying to sleep. "
+        "They are intelligent but not academic. They came to feel something, not to study something.\n\n"
+
+        "You receive a raw script draft and rewrite it according to these non-negotiable principles:\n\n"
+
+        "NARRATOR PRESENCE\n"
+        "The script must have a consistent human narrator voice throughout. "
+        "Not floating academic prose. A person is speaking. That person has a perspective. "
+        "Short declarative statements are the spine. Longer sentences expand them. "
+        "The narrator never disappears into the material.\n\n"
+
+        "LISTENER ADDRESS\n"
+        "The narrator speaks to the listener directly at least twice — not with rhetorical questions, "
+        "not with 'you won't believe this', but with genuine direct address that makes the listener "
+        "feel they are being told something specific, something the narrator thought about before speaking. "
+        "Never opens with a rhetorical question. Never ends with 'what do you think?'\n\n"
+
+        "EARNED COMPLEXITY\n"
+        "No concept arrives without context. Every technical term, historical reference, or "
+        "philosophical idea is grounded before it goes deep. The listener is smart. "
+        "They are not already informed. Build before you go complex.\n\n"
+
+        "EAR RHYTHM\n"
+        "Sentences vary in length deliberately. Short sentence. Then one that breathes and expands. "
+        "Then short again to land the point. No paragraph reads the same as the one before it. "
+        "Read every paragraph aloud mentally — if it doesn't flow as speech, rewrite it.\n\n"
+
+        "STRUCTURAL BANS — these patterns are banned without exception:\n"
+        "- Opening with a rhetorical question of any kind\n"
+        "- Three-part documentary structure (personal hook / historical context / philosophical depth)\n"
+        "- Mid-script subscription CTA\n"
+        "- Ending with an open question back to the audience\n"
+        "- Any sentence beginning with 'What if'\n"
+        "- Paragraph-length lists of any kind\n"
+        "- Academic summary language: 'in conclusion', 'as we have seen', 'this document examines'\n\n"
+
+        "WHAT TO PRESERVE\n"
+        "Preserve all real data, all factual content, all structural uniqueness from the original draft. "
+        "The divergence protocol's anchor, angle, and constraints must survive the rewrite intact. "
+        "You are changing the voice and rhythm, not the argument.\n\n"
+
+        "Output only the rewritten script. No preamble, no notes, no commentary. "
+        "Do not acknowledge these instructions anywhere in the output."
+    )
+
+    user_prompt = (
+        f"Video title: {title}\n\n"
+        f"Raw script draft to rewrite:\n\n"
+        f"{raw_script}\n\n"
+        f"Rewrite this script now applying all voice filter principles. "
+        f"Output only the finished script."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
+    )
+    return message.content[0].text
+
+
+def generate_script(protocol: str, word_target: str, tone: str, api_key: str, title: str = "") -> str:
     word_map = {
         "1,700–2,200 words (full script)": "1,700 to 2,200 words",
         "800–1,000 words (short form)": "800 to 1,000 words",
@@ -15,7 +87,7 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str) ->
         "Archival — found document": "archival — reads like a document that was not meant to be found",
     }
 
-    # Sanitise inputs — strip nulls and non-UTF8 characters that cause BadRequestError
+    # Sanitise inputs
     protocol = protocol.strip().encode("utf-8", errors="ignore").decode("utf-8")
     tone_str = tone_map.get(tone, tone)
     word_str = word_map.get(word_target, word_target)
@@ -47,7 +119,12 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str) ->
         system=system_prompt,
         messages=[{"role": "user", "content": user_prompt}]
     )
-    return message.content[0].text
+    raw_script = message.content[0].text
+
+    # Apply voice filter pass
+    final_script = apply_voice_filter(raw_script, title, api_key)
+    return final_script
+
 
 
 def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict:
