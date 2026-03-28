@@ -22,15 +22,15 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap');
 
 :root {
-    --bg: #0a0a0a;
-    --surface: #111111;
-    --surface2: #1a1a1a;
-    --border: #2a2a2a;
-    --accent: #c8a96e;
-    --accent2: #7c6a4a;
-    --text: #e8e0d0;
-    --text-muted: #7a7060;
-    --text-dim: #4a4540;
+    --bg: #ffffff;
+    --surface: #f8f8f6;
+    --surface2: #f0efe9;
+    --border: #e0ddd4;
+    --accent: #2a2a2a;
+    --accent2: #5a5a5a;
+    --text: #1a1a1a;
+    --text-muted: #6a6a6a;
+    --text-dim: #aaaaaa;
     --danger: #8b3a3a;
     --success: #3a6b3a;
 }
@@ -54,7 +54,7 @@ html, body, [data-testid="stAppViewContainer"] {
 h1, h2, h3 {
     font-family: 'Bebas Neue', sans-serif !important;
     letter-spacing: 0.08em !important;
-    color: var(--accent) !important;
+    color: #1a1a1a !important;
 }
 
 .stButton > button {
@@ -70,7 +70,7 @@ h1, h2, h3 {
 
 .stButton > button:hover {
     background: var(--accent2) !important;
-    color: var(--bg) !important;
+    color: #ffffff !important;
     border-color: var(--accent) !important;
 }
 
@@ -256,10 +256,10 @@ with st.sidebar:
     st.markdown("---")
 
     script_num = len(data.get("scripts", [])) + 1
-    st.markdown(f"<div class='label'>Next script</div><div style='font-size:28px;font-family:Bebas Neue,sans-serif;color:#c8a96e;letter-spacing:0.1em;'>#{script_num:03d}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='label'>Next script</div><div style='font-size:28px;font-family:Bebas Neue,sans-serif;color:#1a1a1a;letter-spacing:0.1em;'>#{script_num:03d}</div>", unsafe_allow_html=True)
 
     bans_count = len(data.get("banned", []))
-    st.markdown(f"<div class='label' style='margin-top:16px;'>Banned moves</div><div style='font-size:28px;font-family:Bebas Neue,sans-serif;color:#c8a96e;letter-spacing:0.1em;'>{bans_count}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='label' style='margin-top:16px;'>Banned moves</div><div style='font-size:28px;font-family:Bebas Neue,sans-serif;color:#1a1a1a;letter-spacing:0.1em;'>{bans_count}</div>", unsafe_allow_html=True)
 
     st.markdown("---")
     page = st.radio("", ["Divergence Protocol", "Script Generator", "Title Machine", "Script History", "Anti-Pattern Log"], label_visibility="collapsed")
@@ -278,7 +278,7 @@ if page == "Divergence Protocol":
 
         with col1:
             st.markdown("<div class='label'>Data domain</div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:13px;color:#7a7060;line-height:1.7;margin-bottom:16px;'>Each script needs a different category of real-world data as its foundation. Roll a domain, then find one specific data point inside it before writing a word.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:13px;color:#6a6a6a;line-height:1.7;margin-bottom:16px;'>Each script needs a different category of real-world data as its foundation. Roll a domain, then find one specific data point inside it before writing a word.</div>", unsafe_allow_html=True)
             if st.button("↻  Roll domain", key="roll_anchor"):
                 st.session_state.anchor = random.choice(ANCHORS)
             if st.session_state.anchor:
@@ -289,7 +289,7 @@ if page == "Divergence Protocol":
 
         with col2:
             st.markdown("<div class='label'>Entry angle</div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:13px;color:#7a7060;line-height:1.7;margin-bottom:16px;'>The anchor is the what. The angle is how you enter it — the specific lens that makes real data feel cosmically wrong.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='font-size:13px;color:#6a6a6a;line-height:1.7;margin-bottom:16px;'>The anchor is the what. The angle is how you enter it — the specific lens that makes real data feel cosmically wrong.</div>", unsafe_allow_html=True)
             if st.button("↻  Roll angle", key="roll_angle"):
                 st.session_state.angle = random.choice(ANGLES)
             if st.session_state.angle:
@@ -361,7 +361,7 @@ if page == "Divergence Protocol":
                         save_banned(banned)
                         st.rerun()
         else:
-            st.markdown("<div style='color:#4a4540;font-size:13px;padding:20px 0;'>No moves logged yet. Add below or load defaults.</div>", unsafe_allow_html=True)
+            st.markdown("<div style='color:#aaaaaa;font-size:13px;padding:20px 0;'>No moves logged yet. Add below or load defaults.</div>", unsafe_allow_html=True)
 
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         st.markdown("<div class='label'>Add new banned move</div>", unsafe_allow_html=True)
@@ -381,7 +381,7 @@ if page == "Divergence Protocol":
     with tab4:
         st.markdown("")
         st.markdown("<div class='label'>Pre-script brief</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:13px;color:#7a7060;line-height:1.7;margin-bottom:20px;'>This document replaces all templates. Paste it into the Script Generator tab — or copy it to use externally.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:13px;color:#6a6a6a;line-height:1.7;margin-bottom:20px;'>This document replaces all templates. Paste it into the Script Generator tab — or copy it to use externally.</div>", unsafe_allow_html=True)
 
         banned = data.get("banned", [])
         protocol_lines = [
@@ -563,7 +563,7 @@ elif page == "Script History":
 
     scripts = data.get("scripts", [])
     if not scripts:
-        st.markdown("<div style='color:#4a4540;font-size:13px;padding:40px 0;'>No scripts saved yet. Generate and save your first one.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='color:#aaaaaa;font-size:13px;padding:40px 0;'>No scripts saved yet. Generate and save your first one.</div>", unsafe_allow_html=True)
     else:
         for script in reversed(scripts):
             with st.expander(f"Script #{script['id']:03d}  —  {script['date'][:10]}  —  {(script.get('anchor','') or '')[:60]}..."):
