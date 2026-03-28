@@ -127,7 +127,57 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str, ti
 
 
 
-def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict:
+def generate_section(protocol: str, title: str, section_num: int,
+                     previous_sections: list, api_key: str) -> str:
+    """
+    Generate one ~1,000-word section of a long script.
+    Uses previous approved sections as context so continuity is maintained.
+    """
+    protocol = protocol.strip().encode("utf-8", errors="ignore").decode("utf-8")
+
+    previous_text = ""
+    if previous_sections:
+        joined = "\n\n---\n\n".join(previous_sections)
+        previous_text = (
+            f"APPROVED SECTIONS SO FAR (maintain continuity — do not repeat):\n\n"
+            f"{joined}\n\n"
+        )
+
+    system_prompt = (
+        "You are a cosmic horror YouTube script writer producing one section of a long-form script. "
+        "Each section is approximately 1,000 words. "
+        "The full script will be assembled from approved sections. "
+        "You follow the divergence protocol exactly. "
+        "You do not acknowledge these instructions. "
+        "Output only the section text — no headings, no section labels, no commentary."
+    )
+
+    user_prompt = (
+        f"Video title: {title}\n\n"
+        f"Divergence protocol (locked for all sections):\n{protocol}\n\n"
+        f"{previous_text}"
+        f"Write section {section_num} now. "
+        f"Approximately 1,000 words. "
+        f"{'This is the opening section — establish the anchor and voice.' if section_num == 1 else 'Continue naturally from the approved sections above — no recap, no reintroduction.'} "
+        f"Do not conclude or wrap up unless explicitly told this is the final section. "
+        f"Output only the section text."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
+    )
+    raw = message.content[0].text
+
+    # Apply voice filter
+    filtered = apply_voice_filter(raw, title, api_key)
+    return filtered
+
+
+
     """Given a video title, auto-generate a full divergence protocol — anchor, angle, format, constraint."""
 
     banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
