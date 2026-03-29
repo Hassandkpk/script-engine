@@ -837,30 +837,38 @@ elif page == "Divergence Protocol":
             else:
                 outline = st.session_state.pro_outline
 
-                st.markdown("<div style='background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:14px 16px;margin-bottom:14px'>", unsafe_allow_html=True)
-                st.markdown(f"**Intro (150 words):** {outline.get('intro','')}", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-
-                for i, sec in enumerate(outline.get("sections", [])):
-                    with st.expander(f"Section {i+1}: {sec.get('heading','')}"):
-                        for bullet in sec.get("bullets", []):
-                            st.markdown(f"- {bullet}")
-
-                st.markdown("<div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-top:14px'>", unsafe_allow_html=True)
-                st.markdown(f"**Conclusion (150 words):** {outline.get('conclusion','')}", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-
-                st.markdown("")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("↻ Regenerate outline", key="pro_regen_outline"):
+                # Check if outline generation actually failed
+                intro_text = outline.get('intro', '')
+                if intro_text.startswith("Parse error") or not outline.get("sections"):
+                    st.error(f"Outline generation failed. Details: {intro_text}")
+                    if st.button("↻ Try again", key="pro_regen_outline_err"):
                         st.session_state.pro_outline = {}
                         st.rerun()
-                with col2:
-                    if st.button("Approve outline →", key="pro_approve_outline"):
-                        st.session_state.pro_outline_approved = True
-                        st.session_state.pro_step = 5
-                        st.rerun()
+                else:
+                    st.markdown("<div style='background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:14px 16px;margin-bottom:14px'>", unsafe_allow_html=True)
+                    st.markdown(f"**Intro (150 words):** {intro_text}", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                    for i, sec in enumerate(outline.get("sections", [])):
+                        with st.expander(f"Section {i+1}: {sec.get('heading','')}"):
+                            for bullet in sec.get("bullets", []):
+                                st.markdown(f"- {bullet}")
+
+                    st.markdown("<div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-top:14px'>", unsafe_allow_html=True)
+                    st.markdown(f"**Conclusion (150 words):** {outline.get('conclusion','')}", unsafe_allow_html=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                    st.markdown("")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("↻ Regenerate outline", key="pro_regen_outline"):
+                            st.session_state.pro_outline = {}
+                            st.rerun()
+                    with col2:
+                        if st.button("Approve outline →", key="pro_approve_outline"):
+                            st.session_state.pro_outline_approved = True
+                            st.session_state.pro_step = 5
+                            st.rerun()
         else:
             outline = st.session_state.pro_outline
             st.markdown(f"<div class='sp-locked-badge'>✓ Outline approved — {len(outline.get('sections',[]))} sections</div>", unsafe_allow_html=True)
