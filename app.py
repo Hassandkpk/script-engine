@@ -17,7 +17,7 @@ from storage import load_data, save_banned, save_script, load_recent_fingerprint
 from generator import (generate_script, generate_titles, generate_protocol_from_title,
                        build_protocol_text, generate_section, generate_outline,
                        check_outline_uniqueness, generate_intro, generate_body_section,
-                       generate_conclusion)
+                       generate_conclusion, audit_section)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -436,6 +436,10 @@ if 'pro_conclusion_approved' not in st.session_state:
     st.session_state.pro_conclusion_approved = False
 if 'pro_assembled' not in st.session_state:
     st.session_state.pro_assembled = ""
+if 'pro_audit_result' not in st.session_state:
+    st.session_state.pro_audit_result = None
+if 'pro_intro_audit' not in st.session_state:
+    st.session_state.pro_intro_audit = None
 if 'channel' not in st.session_state:
     st.session_state.channel = load_channel()
 if 'concept_result' not in st.session_state:
@@ -498,6 +502,48 @@ with st.sidebar:
         page = st.radio("", ["Quick Generate", "Script History"], label_visibility="collapsed")
     else:
         page = st.radio("", ["Divergence Protocol", "Script Generator", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"], label_visibility="collapsed")
+
+
+def _render_audit(audit: dict):
+    """Render an audit report inline with color-coded severity."""
+    severity = audit.get("severity", "clean")
+    sev_colors = {
+        "clean": ("#f0fdf4", "#bbf7d0", "#16a34a", "✓ Clean"),
+        "minor": ("#fffbeb", "#fde68a", "#b45309", "⚠ Minor issues"),
+        "moderate": ("#fff7ed", "#fed7aa", "#c2410c", "⚠ Moderate issues"),
+        "major": ("#fef2f2", "#fecaca", "#b91c1c", "✕ Major issues"),
+    }
+    bg, border, tc, label = sev_colors.get(severity, sev_colors["clean"])
+    total = audit.get("total_issues", 0)
+
+    st.markdown(f"""
+    <div style='background:{bg};border:1.5px solid {border};border-radius:14px;padding:16px 18px;margin-top:14px'>
+        <div style='font-size:14px;font-weight:600;color:{tc};margin-bottom:10px'>
+            Audit report — {label} · {total} issue{"s" if total != 1 else ""}
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Paragraph openers
+    openers = audit.get("paragraph_openers", [])
+    if openers:
+        st.markdown(f"<div style='font-size:13px;color:#666;margin-bottom:6px'><strong>Paragraph openers:</strong> {' · '.join(openers)}</div>", unsafe_allow_html=True)
+
+    all_flags = (
+        [("🔴 Opener", f) for f in audit.get("opener_flags", [])] +
+        [("🟠 Repetition", f) for f in audit.get("repetition_flags", [])] +
+        [("🟡 Rhythm", f) for f in audit.get("rhythm_flags", [])] +
+        [("🟡 Outline", f) for f in audit.get("outline_flags", [])] +
+        [("🟡 Redundancy", f) for f in audit.get("redundancy_flags", [])]
+    )
+
+    if all_flags:
+        for tag, flag in all_flags:
+            st.markdown(f"<div style='font-size:13px;color:#444;padding:4px 0;border-bottom:1px solid {border}'>{tag}: {flag}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div style='font-size:13px;color:{tc}'>No issues found — safe to approve.</div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 if page == "Quick Generate":
@@ -637,7 +683,7 @@ if page == "Quick Generate":
                 st.rerun()
 
 
-elif page == "Divergence Protocol":
+if page == "Divergence Protocol":
     st.markdown("<div class='sp-hero-label'>Full mode — Hassan Ali</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-title'>What's your next script?</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-sub'>Step by step — each stage unlocks only after you approve the previous one.</div>", unsafe_allow_html=True)
@@ -941,30 +987,45 @@ elif page == "Divergence Protocol":
         tone = st.session_state.pro_tone
 
         # --- INTRO ---
-        st.markdown("<div style='font-size:13px;font-weight:600;color:#111;margin-bottom:8px'>Intro (150 words)</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>Intro (150 words)</div>", unsafe_allow_html=True)
 
         if not st.session_state.pro_intro_approved:
             if not st.session_state.pro_intro_text:
                 with st.spinner("Writing intro..."):
                     intro = generate_intro(title, protocol_text, outline, tone, st.session_state.api_key)
                     st.session_state.pro_intro_text = intro
+                    st.session_state.pro_intro_audit = None
                 st.rerun()
 
-            edited_intro = st.text_area("Intro", value=st.session_state.pro_intro_text, height=180,
+            edited_intro = st.text_area("Intro", value=st.session_state.pro_intro_text, height=200,
                                          label_visibility="collapsed", key="pro_intro_area")
             wc = len(edited_intro.split())
-            st.markdown(f"<div class='word-count'>{wc} words</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
 
-            col1, col2 = st.columns(2)
+            # Audit button
+            col1, col2, col3 = st.columns(3)
             with col1:
                 if st.button("↻ Regenerate intro", key="pro_regen_intro"):
                     st.session_state.pro_intro_text = ""
+                    st.session_state.pro_intro_audit = None
                     st.rerun()
             with col2:
-                if st.button("✓ Approve intro — write body →", key="pro_approve_intro"):
+                if st.button("🔍 Run audit", key="pro_audit_intro"):
+                    with st.spinner("Auditing intro..."):
+                        st.session_state.pro_intro_audit = audit_section(
+                            edited_intro, {}, 0, st.session_state.api_key
+                        )
+            with col3:
+                if st.button("✓ Approve intro →", key="pro_approve_intro"):
                     st.session_state.pro_intro_text = edited_intro
                     st.session_state.pro_intro_approved = True
+                    st.session_state.pro_intro_audit = None
                     st.rerun()
+
+            # Show intro audit report
+            if st.session_state.pro_intro_audit:
+                _render_audit(st.session_state.pro_intro_audit)
+
         else:
             st.markdown(f"<div class='sp-locked-badge'>✓ Intro approved ({len(st.session_state.pro_intro_text.split())} words)</div>", unsafe_allow_html=True)
 
@@ -978,7 +1039,7 @@ elif page == "Divergence Protocol":
                 # Show approved body sections
                 if approved_body:
                     total_body_words = sum(len(s.split()) for s in approved_body)
-                    st.markdown(f"<div style='font-size:13px;font-weight:600;color:#111;margin-bottom:8px'>Main body — {len(approved_body)} sections approved · ~{total_body_words:,} words</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>Main body — {len(approved_body)} sections approved · ~{total_body_words:,} words</div>", unsafe_allow_html=True)
                     for i, sec_text in enumerate(approved_body):
                         sections = outline.get("sections", [])
                         heading = sections[i]["heading"] if i < len(sections) else f"Section {i+1}"
@@ -992,9 +1053,10 @@ elif page == "Divergence Protocol":
 
                     if not all_body_done:
                         sections_list = outline.get("sections", [])
-                        current_heading = sections_list[sec_num-1]["heading"] if sec_num-1 < len(sections_list) else f"Section {sec_num}"
+                        current_outline_sec = sections_list[sec_num-1] if sec_num-1 < len(sections_list) else {}
+                        current_heading = current_outline_sec.get("heading", f"Section {sec_num}")
 
-                        st.markdown(f"<div style='font-size:13px;font-weight:600;color:#111;margin:16px 0 8px'>Section {sec_num} of {total_sections}: {current_heading}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin:16px 0 8px'>Section {sec_num} of {total_sections}: {current_heading}</div>", unsafe_allow_html=True)
 
                         if not st.session_state.pro_body_pending:
                             all_approved = [st.session_state.pro_intro_text] + approved_body
@@ -1004,37 +1066,52 @@ elif page == "Divergence Protocol":
                                     all_approved, tone, st.session_state.api_key
                                 )
                                 st.session_state.pro_body_pending = body_sec
+                                st.session_state.pro_audit_result = None
                             st.rerun()
 
                         edited_body = st.text_area(
                             f"Section {sec_num}", value=st.session_state.pro_body_pending,
-                            height=300, label_visibility="collapsed", key=f"pro_body_pending_area"
+                            height=320, label_visibility="collapsed", key=f"pro_body_pending_area"
                         )
                         wc = len(edited_body.split())
-                        st.markdown(f"<div class='word-count'>{wc} words</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
 
-                        col1, col2, col3 = st.columns(3)
+                        col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            if st.button(f"↻ Regenerate section {sec_num}", key="pro_regen_body"):
+                            if st.button(f"↻ Regenerate", key="pro_regen_body"):
                                 st.session_state.pro_body_pending = ""
+                                st.session_state.pro_audit_result = None
                                 st.rerun()
                         with col2:
-                            next_label = f"✓ Approve → Section {sec_num+1}" if sec_num < total_sections else "✓ Approve → Conclusion"
+                            if st.button("🔍 Run audit", key="pro_audit_body"):
+                                with st.spinner("Auditing..."):
+                                    st.session_state.pro_audit_result = audit_section(
+                                        edited_body, current_outline_sec,
+                                        sec_num, st.session_state.api_key
+                                    )
+                        with col3:
+                            next_label = f"✓ Approve → {sec_num+1}" if sec_num < total_sections else "✓ Approve → Conclusion"
                             if st.button(next_label, key="pro_approve_body"):
                                 st.session_state.pro_body_sections.append(edited_body)
                                 st.session_state.pro_body_section_num += 1
                                 st.session_state.pro_body_pending = ""
+                                st.session_state.pro_audit_result = None
                                 st.rerun()
-                        with col3:
-                            if st.button("⏹ Stop here — write conclusion", key="pro_stop_body"):
+                        with col4:
+                            if st.button("⏹ Wrap up", key="pro_stop_body"):
                                 st.session_state.pro_body_sections.append(edited_body)
                                 st.session_state.pro_body_pending = ""
                                 st.session_state.pro_body_section_num = total_sections + 1
+                                st.session_state.pro_audit_result = None
                                 st.rerun()
+
+                        # Show audit report
+                        if st.session_state.pro_audit_result:
+                            _render_audit(st.session_state.pro_audit_result)
 
                     # --- CONCLUSION ---
                     else:
-                        st.markdown("<div style='font-size:13px;font-weight:600;color:#111;margin:16px 0 8px'>Conclusion (150 words)</div>", unsafe_allow_html=True)
+                        st.markdown("<div style='font-size:15px;font-weight:600;color:#111;margin:16px 0 8px'>Conclusion (150 words)</div>", unsafe_allow_html=True)
 
                         if not st.session_state.pro_conclusion_text:
                             all_approved = [st.session_state.pro_intro_text] + approved_body
@@ -1048,10 +1125,10 @@ elif page == "Divergence Protocol":
 
                         edited_conclusion = st.text_area(
                             "Conclusion", value=st.session_state.pro_conclusion_text,
-                            height=180, label_visibility="collapsed", key="pro_conclusion_area"
+                            height=200, label_visibility="collapsed", key="pro_conclusion_area"
                         )
                         wc = len(edited_conclusion.split())
-                        st.markdown(f"<div class='word-count'>{wc} words</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
 
                         col1, col2 = st.columns(2)
                         with col1:
