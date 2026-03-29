@@ -14,7 +14,10 @@ st.set_page_config(
 
 from data import ANCHORS, ANGLES, POVS, DISTANCES, PARAS, CONSTRAINTS, DEFAULT_BANS
 from storage import load_data, save_banned, save_script, load_recent_fingerprints, load_channel, save_channel
-from generator import generate_script, generate_titles, generate_protocol_from_title, build_protocol_text, generate_section
+from generator import (generate_script, generate_titles, generate_protocol_from_title,
+                       build_protocol_text, generate_section, generate_outline,
+                       check_outline_uniqueness, generate_intro, generate_body_section,
+                       generate_conclusion)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -392,22 +395,46 @@ if 'full_constraint' not in st.session_state:
     st.session_state.full_constraint = ""
 if 'full_reasoning' not in st.session_state:
     st.session_state.full_reasoning = ""
-if 'full_generated_script' not in st.session_state:
-    st.session_state.full_generated_script = ""
 if 'full_suggested' not in st.session_state:
     st.session_state.full_suggested = None
-if 'full_output_mode' not in st.session_state:
-    st.session_state.full_output_mode = "Full script by sections"
-if 'full_sections' not in st.session_state:
-    st.session_state.full_sections = []        # list of approved section texts
-if 'full_section_pending' not in st.session_state:
-    st.session_state.full_section_pending = "" # current unapproved section
-if 'full_protocol_locked' not in st.session_state:
-    st.session_state.full_protocol_locked = False
-if 'full_protocol_text' not in st.session_state:
-    st.session_state.full_protocol_text = ""
-if 'full_section_num' not in st.session_state:
-    st.session_state.full_section_num = 1
+
+# Pro Mode state machine
+if 'pro_step' not in st.session_state:
+    st.session_state.pro_step = 1          # 1=title, 2=protocol, 3=length+tone, 4=outline, 5=outline check, 6=writing
+if 'pro_title' not in st.session_state:
+    st.session_state.pro_title = ""
+if 'pro_concept_result' not in st.session_state:
+    st.session_state.pro_concept_result = None
+if 'pro_protocol' not in st.session_state:
+    st.session_state.pro_protocol = {}
+if 'pro_protocol_text' not in st.session_state:
+    st.session_state.pro_protocol_text = ""
+if 'pro_length' not in st.session_state:
+    st.session_state.pro_length = "Full script (1,700–2,200 words)"
+if 'pro_tone' not in st.session_state:
+    st.session_state.pro_tone = "Existential — scale horror"
+if 'pro_outline' not in st.session_state:
+    st.session_state.pro_outline = {}      # {intro, sections:[{heading,bullets}], conclusion}
+if 'pro_outline_approved' not in st.session_state:
+    st.session_state.pro_outline_approved = False
+if 'pro_uniqueness' not in st.session_state:
+    st.session_state.pro_uniqueness = None
+if 'pro_intro_text' not in st.session_state:
+    st.session_state.pro_intro_text = ""
+if 'pro_intro_approved' not in st.session_state:
+    st.session_state.pro_intro_approved = False
+if 'pro_body_sections' not in st.session_state:
+    st.session_state.pro_body_sections = []   # approved body sections
+if 'pro_body_pending' not in st.session_state:
+    st.session_state.pro_body_pending = ""
+if 'pro_body_section_num' not in st.session_state:
+    st.session_state.pro_body_section_num = 1
+if 'pro_conclusion_text' not in st.session_state:
+    st.session_state.pro_conclusion_text = ""
+if 'pro_conclusion_approved' not in st.session_state:
+    st.session_state.pro_conclusion_approved = False
+if 'pro_assembled' not in st.session_state:
+    st.session_state.pro_assembled = ""
 if 'channel' not in st.session_state:
     st.session_state.channel = load_channel()
 if 'concept_result' not in st.session_state:
@@ -612,353 +639,458 @@ if page == "Quick Generate":
 elif page == "Divergence Protocol":
     st.markdown("<div class='sp-hero-label'>Full mode — Hassan Ali</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-title'>What's your next script?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sp-hero-sub'>Enter a title. Specter suggests the protocol. You review, override, then generate.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-sub'>Step by step — each stage unlocks only after you approve the previous one.</div>", unsafe_allow_html=True)
     st.markdown("")
 
     if not st.session_state.api_key:
         st.warning("Add your Anthropic API key in the sidebar.")
 
-    # Step 1 — Title
-    st.markdown("<div class='sp-section-label'>Step 1 — Video title</div>", unsafe_allow_html=True)
-    full_title = st.text_input(
-        "Title",
-        value=st.session_state.get("full_title", ""),
-        placeholder="e.g. The Hidden HIERARCHY of Lovecraft's Gods (Who Really Controls Everything)",
-        label_visibility="collapsed"
-    )
-    if full_title:
-        st.session_state.full_title = full_title
-
+    # --- STEP PROGRESS BAR ---
+    steps = ["Title", "Protocol", "Length & Tone", "Outline", "Outline Check", "Writing"]
+    current = st.session_state.pro_step
+    cols = st.columns(len(steps))
+    for i, (col, label) in enumerate(zip(cols, steps)):
+        step_num = i + 1
+        if step_num < current:
+            col.markdown(f"<div style='text-align:center;font-size:11px;font-weight:600;color:#16a34a'>✓ {label}</div>", unsafe_allow_html=True)
+        elif step_num == current:
+            col.markdown(f"<div style='text-align:center;font-size:11px;font-weight:700;color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:4px'>{label}</div>", unsafe_allow_html=True)
+        else:
+            col.markdown(f"<div style='text-align:center;font-size:11px;color:#bbb'>{label}</div>", unsafe_allow_html=True)
     st.markdown("")
 
-    if st.button("Analyse title and suggest protocol", key="analyse_title"):
-        if not st.session_state.api_key:
-            st.error("API key required.")
-        elif not full_title.strip():
-            st.error("Enter a title first.")
-        else:
-            # Concept check first
-            proceed = True
-            if st.session_state.channel.get("channel_id") and get_youtube_api_key():
-                with st.spinner(f"Checking concept against {st.session_state.channel.get('channel_name','your channel')}..."):
-                    try:
-                        videos = get_channel_videos(st.session_state.channel["channel_id"], get_youtube_api_key())
-                        result = check_concept(full_title.strip(), videos, st.session_state.api_key)
-                        st.session_state.concept_result = result
-                        if result["status"] == "red":
-                            proceed = False
-                    except Exception as e:
-                        st.warning(f"Concept check skipped: {e}")
+    # Reset button
+    if st.session_state.pro_step > 1:
+        if st.button("↺ Start over", key="pro_reset"):
+            for k in ['pro_step','pro_title','pro_concept_result','pro_protocol','pro_protocol_text',
+                      'pro_outline','pro_outline_approved','pro_uniqueness','pro_intro_text',
+                      'pro_intro_approved','pro_body_sections','pro_body_pending',
+                      'pro_body_section_num','pro_conclusion_text','pro_conclusion_approved','pro_assembled']:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
 
-            if not proceed:
-                r = st.session_state.concept_result
-                st.error(f"**Concept already covered** — {r['reason']}")
-                if r.get("matches"):
-                    st.markdown("Overlapping videos: " + " · ".join([f"`{m}`" for m in r["matches"][:3]]))
-                st.info("Change your title angle and try again.")
-            else:
-                if st.session_state.concept_result and st.session_state.concept_result.get("status") == "yellow":
-                    r = st.session_state.concept_result
-                    st.warning(f"⚠ Adjacent concept — {r['reason']} Review the suggested protocol carefully.")
+    st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
 
-                banned = data.get("banned", [])
-                with st.spinner("Analysing title and building suggestions..."):
-                    fingerprints = load_recent_fingerprints(15)
-                    suggested = generate_protocol_from_title(
-                        full_title.strip(), banned, st.session_state.api_key,
-                        recent_fingerprints=fingerprints
-                    )
-                st.session_state.full_suggested = suggested
-                st.session_state.full_anchor = suggested.get("anchor", "")
-                st.session_state.full_angle = suggested.get("angle", "")
-                st.session_state.full_pov = suggested.get("pov", "")
-                st.session_state.full_distance = suggested.get("distance", "")
-                st.session_state.full_para = suggested.get("para", "")
-                st.session_state.full_constraint = suggested.get("constraint", "")
-                st.session_state.full_reasoning = suggested.get("reasoning", "")
-                st.rerun()
+    # =====================================================================
+    # STEP 1 — TITLE + CONCEPT CHECK
+    # =====================================================================
+    if st.session_state.pro_step >= 1:
+        st.markdown("<div class='sp-section-label'>Step 1 — Video title</div>", unsafe_allow_html=True)
 
-    # Show suggestions if available
-    if st.session_state.get("full_anchor"):
-        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='sp-section-label'>Step 2 — Review and override suggestions</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:13px;color:#6a6a6a;margin-bottom:20px;'>The tool analysed your title and pre-filled everything below. Change anything before generating — or accept as is.</div>", unsafe_allow_html=True)
+        if st.session_state.pro_step == 1:
+            pro_title_input = st.text_input(
+                "Title", value=st.session_state.pro_title,
+                placeholder="e.g. The Hidden HIERARCHY of Lovecraft's Gods...",
+                label_visibility="collapsed", key="pro_title_input"
+            )
 
-        # Reasoning
-        if st.session_state.get("full_reasoning"):
-            st.markdown(f"<div style='font-size:12px;color:#6a6a6a;font-style:italic;margin-bottom:20px;padding:10px;background:#f8f8f6;border-left:2px solid #e0ddd4;'>◈ Why this anchor was chosen: {st.session_state.full_reasoning}</div>", unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#7c3aed'></div><div class='sp-card-label'>Reality anchor</div></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:12px;color:#aaa;margin-bottom:8px;'>Must produce immediate dread — no explanation needed.</div>", unsafe_allow_html=True)
-            full_anchor = st.text_area("Anchor", value=st.session_state.full_anchor, height=100, label_visibility="collapsed", key="ta_anchor")
-            st.session_state.full_anchor = full_anchor
-
-            st.markdown("")
-            st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#2563eb'></div><div class='sp-card-label'>Entry angle</div></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:12px;color:#aaa;margin-bottom:8px;'>The lens that makes this data feel cosmically wrong.</div>", unsafe_allow_html=True)
-            full_angle = st.text_area("Angle", value=st.session_state.full_angle, height=100, label_visibility="collapsed", key="ta_angle")
-            st.session_state.full_angle = full_angle
-
-            st.markdown("")
-            st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#d97706'></div><div class='sp-card-label'>Hard constraint</div></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:12px;color:#aaa;margin-bottom:8px;'>One banned device or forced structural rule.</div>", unsafe_allow_html=True)
-            full_constraint = st.text_area("Constraint", value=st.session_state.full_constraint, height=80, label_visibility="collapsed", key="ta_constraint")
-            st.session_state.full_constraint = full_constraint
-
-        with col2:
-            st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#0891b2'></div><div class='sp-card-label'>Point of view</div></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:12px;color:#aaa;margin-bottom:8px;'>Who is narrating and how.</div>", unsafe_allow_html=True)
-            full_pov = st.text_area("POV", value=st.session_state.full_pov, height=80, label_visibility="collapsed", key="ta_pov")
-            st.session_state.full_pov = full_pov
-
-            st.markdown("")
-            st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#059669'></div><div class='sp-card-label'>Narrative distance</div></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:12px;color:#aaa;margin-bottom:8px;'>How close the narrator is to the subject.</div>", unsafe_allow_html=True)
-            full_distance = st.text_area("Distance", value=st.session_state.full_distance, height=80, label_visibility="collapsed", key="ta_distance")
-            st.session_state.full_distance = full_distance
-
-            st.markdown("")
-            st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#db2777'></div><div class='sp-card-label'>Paragraph structure</div></div>", unsafe_allow_html=True)
-            st.markdown("<div style='font-size:12px;color:#aaa;margin-bottom:8px;'>How paragraphs are shaped across the script.</div>", unsafe_allow_html=True)
-            full_para = st.text_area("Para", value=st.session_state.full_para, height=80, label_visibility="collapsed", key="ta_para")
-            st.session_state.full_para = full_para
-
-            st.markdown("")
-
-        # Output mode selector
-        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='sp-section-label'>Step 3 — Output mode & tone</div>", unsafe_allow_html=True)
-        output_mode = st.selectbox("Output mode", [
-            "Intro only (200 words) — approve then stop or continue",
-            "Short script (1,000 words) — single pass",
-            "Full script at once (1,700–2,200 words)",
-            "Full script by sections (1,000 words each, approve before next)",
-        ], label_visibility="collapsed", key="output_mode_select")
-        st.session_state.full_output_mode = output_mode
-
-        full_tone = st.selectbox("Horror tone", [
-            "Existential — scale horror",
-            "Forensic — clinical dread",
-            "Intimate — personal wrongness",
-            "Archival — found document"
-        ], label_visibility="collapsed", key="full_tone")
-
-        # Ban list preview
-        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-        banned = data.get("banned", [])
-        st.markdown(f"<div class='sp-section-label'>Active ban list — {len(banned)} moves</div>", unsafe_allow_html=True)
-        if banned:
-            ban_pills = " ".join([f"<span class='sp-tag sp-tag-purple'>{b['type']}</span>" for b in banned[:6]])
-            if len(banned) > 6:
-                ban_pills += f" <span style='color:#bbb;font-size:12px;'>+{len(banned)-6} more</span>"
-            st.markdown(f"<div style='margin-bottom:4px;line-height:2;'>{ban_pills}</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div style='font-size:12px;color:#bbb;'>No bans yet — go to Anti-Pattern Log to add them.</div>", unsafe_allow_html=True)
-
-        st.markdown("")
-
-        # --- GENERATE BUTTON ---
-        if not st.session_state.full_protocol_locked:
-            if st.button("◈  Lock protocol and start generating", key="full_gen"):
-                if not st.session_state.api_key:
-                    st.error("API key required.")
-                elif not st.session_state.full_anchor.strip():
-                    st.error("Anchor is required — analyse a title first.")
+            if st.button("Check concept uniqueness →", key="pro_step1_btn"):
+                if not pro_title_input.strip():
+                    st.error("Enter a title first.")
                 else:
-                    protocol = {
-                        "anchor": st.session_state.full_anchor,
-                        "angle": st.session_state.full_angle,
-                        "pov": st.session_state.full_pov,
-                        "distance": st.session_state.full_distance,
-                        "para": st.session_state.full_para,
-                        "constraint": st.session_state.full_constraint,
-                    }
-                    protocol_text = build_protocol_text(
-                        full_title.strip(), script_num, protocol, banned
-                    )
-                    st.session_state.full_protocol_text = protocol_text
-                    st.session_state.full_protocol_locked = True
-                    st.session_state.full_sections = []
-                    st.session_state.full_section_pending = ""
-                    st.session_state.full_section_num = 1
-                    st.session_state.full_generated_script = ""
-
-                    # For non-sectioned modes generate immediately
-                    mode_sel = st.session_state.full_output_mode
-                    if "sections" not in mode_sel:
-                        word_map = {
-                            "Intro only (200 words) — approve then stop or continue": "200 words (intro only)",
-                            "Short script (1,000 words) — single pass": "800–1,000 words (short form)",
-                            "Full script at once (1,700–2,200 words)": "1,700–2,200 words (full script)",
-                        }
-                        wt = word_map.get(mode_sel, "1,700–2,200 words (full script)")
-                        with st.spinner("Writing script — pass 1 of 2..."):
+                    st.session_state.pro_title = pro_title_input.strip()
+                    yt_key = get_youtube_api_key()
+                    if st.session_state.channel.get("channel_id") and yt_key:
+                        with st.spinner(f"Checking against {st.session_state.channel.get('channel_name','your channel')}..."):
                             try:
-                                script = generate_script(
-                                    protocol_text, wt, full_tone,
-                                    st.session_state.api_key, title=full_title.strip()
-                                )
-                                st.session_state.full_generated_script = script
+                                videos = get_channel_videos(st.session_state.channel["channel_id"], yt_key)
+                                result = check_concept(pro_title_input.strip(), videos, st.session_state.api_key)
+                                st.session_state.pro_concept_result = result
                             except Exception as e:
-                                st.error(f"Generation failed: {str(e)}")
-                                st.session_state.full_protocol_locked = False
+                                st.warning(f"Concept check skipped: {e}")
+                                st.session_state.pro_concept_result = {"status": "green", "reason": "Check skipped.", "matches": []}
                     else:
-                        # Section mode — generate section 1 immediately
-                        with st.spinner("Writing section 1 of ~14 — pass 1 of 2..."):
-                            try:
-                                section = generate_section(
-                                    protocol_text, full_title.strip(), 1, [],
-                                    st.session_state.api_key
-                                )
-                                st.session_state.full_section_pending = section
-                            except Exception as e:
-                                st.error(f"Generation failed: {str(e)}")
-                                st.session_state.full_protocol_locked = False
+                        st.session_state.pro_concept_result = {"status": "green", "reason": "No channel linked — skipping check.", "matches": [], "skipped": True}
                     st.rerun()
 
-        # --- PROTOCOL LOCKED STATE ---
-        if st.session_state.full_protocol_locked:
-            st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-            st.markdown(f"<div style='font-size:12px;color:#3a6b3a;margin-bottom:16px;'>✓ Protocol locked — all sections use the same brief</div>", unsafe_allow_html=True)
+            if st.session_state.pro_concept_result:
+                r = st.session_state.pro_concept_result
+                colors = {"green": ("#f0fdf4","#bbf7d0","#16a34a","✓ New concept"), "yellow": ("#fffbeb","#fde68a","#b45309","⚠ Adjacent concept"), "red": ("#fef2f2","#fecaca","#b91c1c","✕ Already covered")}
+                bg, border, tc, label = colors.get(r["status"], colors["green"])
+                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:12px;padding:12px 16px;margin-bottom:12px'><span style='font-size:12px;font-weight:600;color:{tc}'>{label}</span><br><span style='font-size:13px;color:{tc}'>{r['reason']}</span></div>", unsafe_allow_html=True)
+                if r.get("matches"):
+                    st.markdown("Overlapping: " + " · ".join([f"`{m}`" for m in r["matches"][:3]]))
 
-            mode_sel = st.session_state.full_output_mode
+                if r["status"] == "red":
+                    st.error("Change your title angle and try again.")
+                elif r["status"] == "yellow":
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Proceed anyway →", key="pro_yellow_proceed"):
+                            st.session_state.pro_step = 2
+                            st.rerun()
+                    with col2:
+                        if st.button("Change title", key="pro_yellow_change"):
+                            st.session_state.pro_concept_result = None
+                            st.rerun()
+                else:
+                    if st.button("Looks good — suggest protocol →", key="pro_step1_approve"):
+                        st.session_state.pro_step = 2
+                        st.rerun()
+        else:
+            r = st.session_state.pro_concept_result or {}
+            st.markdown(f"<div class='sp-locked-badge'>✓ {st.session_state.pro_title} — {r.get('status','verified').upper()}</div>", unsafe_allow_html=True)
 
-            # NON-SECTIONED OUTPUT
-            if "sections" not in mode_sel and st.session_state.full_generated_script:
-                st.markdown("<div class='sp-section-label'>Generated script</div>", unsafe_allow_html=True)
-                st.text_area("", value=st.session_state.full_generated_script, height=500,
-                             label_visibility="collapsed", key="full_script_display")
-                st.markdown("")
-                col1, col2, col3, col4 = st.columns(4)
+    # =====================================================================
+    # STEP 2 — PROTOCOL
+    # =====================================================================
+    if st.session_state.pro_step >= 2:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 2 — Protocol</div>", unsafe_allow_html=True)
+
+        if st.session_state.pro_step == 2:
+            if not st.session_state.pro_protocol:
+                if st.button("Generate protocol suggestions →", key="pro_gen_protocol"):
+                    banned = data.get("banned", [])
+                    with st.spinner("Analysing title and building protocol..."):
+                        fingerprints = load_recent_fingerprints(15)
+                        suggested = generate_protocol_from_title(
+                            st.session_state.pro_title, banned,
+                            st.session_state.api_key, recent_fingerprints=fingerprints
+                        )
+                        st.session_state.pro_protocol = suggested
+                    st.rerun()
+            else:
+                p = st.session_state.pro_protocol
+                if p.get("reasoning"):
+                    st.markdown(f"<div class='sp-reason'>Anchor reasoning: {p['reasoning']}</div>", unsafe_allow_html=True)
+
+                col1, col2 = st.columns(2)
                 with col1:
-                    pdf_bytes = export_pdf(st.session_state.full_generated_script, script_num)
-                    st.download_button("↓ PDF", pdf_bytes, file_name=f"script_{script_num:03d}.pdf",
-                                       mime="application/pdf", key="full_pdf")
+                    st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#7c3aed'></div><div class='sp-card-label'>Reality anchor</div></div>", unsafe_allow_html=True)
+                    new_anchor = st.text_area("Anchor", value=p.get("anchor",""), height=90, label_visibility="collapsed", key="pro_anchor_edit")
+                    st.markdown("<div class='sp-card-top' style='margin-top:12px'><div class='sp-dot' style='background:#2563eb'></div><div class='sp-card-label'>Entry angle</div></div>", unsafe_allow_html=True)
+                    new_angle = st.text_area("Angle", value=p.get("angle",""), height=90, label_visibility="collapsed", key="pro_angle_edit")
+                    st.markdown("<div class='sp-card-top' style='margin-top:12px'><div class='sp-dot' style='background:#d97706'></div><div class='sp-card-label'>Hard constraint</div></div>", unsafe_allow_html=True)
+                    new_constraint = st.text_area("Constraint", value=p.get("constraint",""), height=70, label_visibility="collapsed", key="pro_constraint_edit")
                 with col2:
-                    docx_bytes = export_docx(st.session_state.full_generated_script, script_num)
-                    st.download_button("↓ Word", docx_bytes, file_name=f"script_{script_num:03d}.docx",
-                                       mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                       key="full_docx")
-                with col3:
-                    if st.button("→ Titles", key="full_to_titles"):
-                        st.session_state.title_script = st.session_state.full_generated_script
+                    st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#0891b2'></div><div class='sp-card-label'>Point of view</div></div>", unsafe_allow_html=True)
+                    new_pov = st.text_area("POV", value=p.get("pov",""), height=70, label_visibility="collapsed", key="pro_pov_edit")
+                    st.markdown("<div class='sp-card-top' style='margin-top:12px'><div class='sp-dot' style='background:#059669'></div><div class='sp-card-label'>Narrative distance</div></div>", unsafe_allow_html=True)
+                    new_distance = st.text_area("Distance", value=p.get("distance",""), height=70, label_visibility="collapsed", key="pro_distance_edit")
+                    st.markdown("<div class='sp-card-top' style='margin-top:12px'><div class='sp-dot' style='background:#db2777'></div><div class='sp-card-label'>Paragraph structure</div></div>", unsafe_allow_html=True)
+                    new_para = st.text_area("Para", value=p.get("para",""), height=70, label_visibility="collapsed", key="pro_para_edit")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("↻ Regenerate protocol", key="pro_regen_protocol"):
+                        st.session_state.pro_protocol = {}
                         st.rerun()
-                with col4:
-                    if st.button("✕ Reset", key="full_reset"):
-                        st.session_state.full_protocol_locked = False
-                        st.session_state.full_generated_script = ""
+                with col2:
+                    if st.button("Approve protocol →", key="pro_approve_protocol"):
+                        st.session_state.pro_protocol = {
+                            "anchor": new_anchor, "angle": new_angle, "pov": new_pov,
+                            "distance": new_distance, "para": new_para, "constraint": new_constraint,
+                            "reasoning": p.get("reasoning","")
+                        }
+                        st.session_state.pro_protocol_text = build_protocol_text(
+                            st.session_state.pro_title, script_num,
+                            st.session_state.pro_protocol, data.get("banned",[])
+                        )
+                        st.session_state.pro_step = 3
                         st.rerun()
+        else:
+            p = st.session_state.pro_protocol
+            st.markdown(f"<div class='sp-locked-badge'>✓ Protocol locked — anchor: {p.get('anchor','')[:60]}...</div>", unsafe_allow_html=True)
 
-            # SECTION MODE OUTPUT
-            elif "sections" in mode_sel:
-                approved = st.session_state.full_sections
-                pending = st.session_state.full_section_pending
-                sec_num = st.session_state.full_section_num
+    # =====================================================================
+    # STEP 3 — LENGTH & TONE
+    # =====================================================================
+    if st.session_state.pro_step >= 3:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 3 — Length & tone</div>", unsafe_allow_html=True)
 
-                # Show approved sections
-                if approved:
-                    total_words = sum(len(s.split()) for s in approved)
-                    st.markdown(f"<div class='sp-section-label'>Approved sections — {len(approved)} sections · ~{total_words:,} words total</div>", unsafe_allow_html=True)
-                    for i, sec in enumerate(approved):
-                        with st.expander(f"Section {i+1} — approved ✓"):
-                            st.text_area("", value=sec, height=200,
-                                         label_visibility="collapsed", key=f"sec_view_{i}")
+        if st.session_state.pro_step == 3:
+            col1, col2 = st.columns(2)
+            with col1:
+                pro_tone = st.selectbox("Tone", [
+                    "Existential — scale horror", "Forensic — clinical dread",
+                    "Intimate — personal wrongness", "Archival — found document"
+                ], label_visibility="collapsed", key="pro_tone_sel")
+            with col2:
+                st.markdown("<div style='font-size:12px;color:#aaa;padding-top:8px'>Script target: 12,000 words total<br>Intro: 150w · Body: ~11 × 1,000w · Conclusion: 150w</div>", unsafe_allow_html=True)
 
-                # Show pending section for approval
-                if pending:
-                    st.markdown(f"<div class='sp-section-label'>Section {sec_num} — review before approving</div>", unsafe_allow_html=True)
-                    edited = st.text_area("", value=pending, height=350,
-                                          label_visibility="collapsed", key="sec_pending")
+            if st.button("Confirm and generate outline →", key="pro_approve_tone"):
+                st.session_state.pro_tone = pro_tone
+                st.session_state.pro_step = 4
+                st.rerun()
+        else:
+            st.markdown(f"<div class='sp-locked-badge'>✓ Tone: {st.session_state.pro_tone}</div>", unsafe_allow_html=True)
 
-                    col1, col2, col3 = st.columns(3)
+    # =====================================================================
+    # STEP 4 — OUTLINE
+    # =====================================================================
+    if st.session_state.pro_step >= 4:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 4 — Script outline</div>", unsafe_allow_html=True)
 
+        if st.session_state.pro_step == 4:
+            if not st.session_state.pro_outline:
+                with st.spinner("Generating outline..."):
+                    outline = generate_outline(
+                        st.session_state.pro_title, st.session_state.pro_protocol,
+                        st.session_state.pro_tone, st.session_state.api_key
+                    )
+                    st.session_state.pro_outline = outline
+                st.rerun()
+            else:
+                outline = st.session_state.pro_outline
+
+                st.markdown("<div style='background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:14px 16px;margin-bottom:14px'>", unsafe_allow_html=True)
+                st.markdown(f"**Intro (150 words):** {outline.get('intro','')}", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                for i, sec in enumerate(outline.get("sections", [])):
+                    with st.expander(f"Section {i+1}: {sec.get('heading','')}"):
+                        for bullet in sec.get("bullets", []):
+                            st.markdown(f"- {bullet}")
+
+                st.markdown("<div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-top:14px'>", unsafe_allow_html=True)
+                st.markdown(f"**Conclusion (150 words):** {outline.get('conclusion','')}", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+                st.markdown("")
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("↻ Regenerate outline", key="pro_regen_outline"):
+                        st.session_state.pro_outline = {}
+                        st.rerun()
+                with col2:
+                    if st.button("Approve outline →", key="pro_approve_outline"):
+                        st.session_state.pro_outline_approved = True
+                        st.session_state.pro_step = 5
+                        st.rerun()
+        else:
+            outline = st.session_state.pro_outline
+            st.markdown(f"<div class='sp-locked-badge'>✓ Outline approved — {len(outline.get('sections',[]))} sections</div>", unsafe_allow_html=True)
+
+    # =====================================================================
+    # STEP 5 — OUTLINE UNIQUENESS CHECK
+    # =====================================================================
+    if st.session_state.pro_step >= 5:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 5 — Uniqueness check</div>", unsafe_allow_html=True)
+
+        if st.session_state.pro_step == 5:
+            if not st.session_state.pro_uniqueness:
+                with st.spinner("Checking outline against all past scripts..."):
+                    past = data.get("scripts", [])
+                    result = check_outline_uniqueness(
+                        st.session_state.pro_title, st.session_state.pro_outline,
+                        past, st.session_state.api_key
+                    )
+                    st.session_state.pro_uniqueness = result
+                st.rerun()
+            else:
+                r = st.session_state.pro_uniqueness
+                colors = {
+                    "unique": ("#f0fdf4","#bbf7d0","#16a34a","✓ Unique structure"),
+                    "similar": ("#fffbeb","#fde68a","#b45309","⚠ Similar to a past script"),
+                    "duplicate": ("#fef2f2","#fecaca","#b91c1c","✕ Too similar to past script")
+                }
+                bg, border, tc, label = colors.get(r.get("status","unique"), colors["unique"])
+                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:12px;padding:14px 16px;margin-bottom:14px'><div style='font-size:12px;font-weight:600;color:{tc};margin-bottom:4px'>{label}</div><div style='font-size:13px;color:{tc}'>{r.get('reason','')}</div></div>", unsafe_allow_html=True)
+
+                if r.get("conflicts"):
+                    for c in r["conflicts"]:
+                        st.markdown(f"- {c}")
+
+                if r.get("status") == "duplicate":
+                    col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("✓ Approve — generate next section", key="sec_approve"):
-                            # Auto-save this section
-                            st.session_state.full_sections.append(edited)
-                            new_record = {
-                                "id": script_num,
-                                "date": datetime.now().isoformat(),
-                                "protocol": st.session_state.full_protocol_text,
-                                "script": f"[SECTION {sec_num}]\n\n{edited}",
-                                "anchor": st.session_state.full_anchor,
-                                "pov": st.session_state.full_pov,
-                                "constraint": st.session_state.full_constraint,
-                                "word_target": f"Section {sec_num}",
-                                "tone": full_tone,
-                            }
-                            save_script(new_record)
-                            next_num = sec_num + 1
-                            st.session_state.full_section_num = next_num
-                            st.session_state.full_section_pending = ""
-                            with st.spinner(f"Writing section {next_num} — pass 1 of 2..."):
-                                try:
-                                    section = generate_section(
-                                        st.session_state.full_protocol_text,
-                                        full_title.strip(), next_num,
-                                        st.session_state.full_sections,
-                                        st.session_state.api_key
-                                    )
-                                    st.session_state.full_section_pending = section
-                                except Exception as e:
-                                    st.error(f"Section generation failed: {str(e)}")
+                        if st.button("↻ Regenerate outline", key="pro_regen_after_check"):
+                            st.session_state.pro_outline = {}
+                            st.session_state.pro_uniqueness = None
+                            st.session_state.pro_step = 4
                             st.rerun()
-
                     with col2:
-                        if st.button("↻ Regenerate this section", key="sec_regen"):
-                            with st.spinner(f"Regenerating section {sec_num}..."):
-                                try:
-                                    section = generate_section(
-                                        st.session_state.full_protocol_text,
-                                        full_title.strip(), sec_num,
-                                        st.session_state.full_sections,
-                                        st.session_state.api_key
-                                    )
-                                    st.session_state.full_section_pending = section
-                                except Exception as e:
-                                    st.error(f"Regeneration failed: {str(e)}")
+                        if st.button("↻ Change protocol", key="pro_change_protocol"):
+                            st.session_state.pro_protocol = {}
+                            st.session_state.pro_outline = {}
+                            st.session_state.pro_uniqueness = None
+                            st.session_state.pro_step = 2
+                            st.rerun()
+                else:
+                    if st.button("Confirmed — begin writing →", key="pro_begin_writing"):
+                        st.session_state.pro_step = 6
+                        st.rerun()
+        else:
+            r = st.session_state.pro_uniqueness or {}
+            st.markdown(f"<div class='sp-locked-badge'>✓ Uniqueness: {r.get('status','verified').upper()}</div>", unsafe_allow_html=True)
+
+    # =====================================================================
+    # STEP 6 — WRITING
+    # =====================================================================
+    if st.session_state.pro_step >= 6:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 6 — Writing</div>", unsafe_allow_html=True)
+
+        title = st.session_state.pro_title
+        protocol_text = st.session_state.pro_protocol_text
+        outline = st.session_state.pro_outline
+        tone = st.session_state.pro_tone
+
+        # --- INTRO ---
+        st.markdown("<div style='font-size:13px;font-weight:600;color:#111;margin-bottom:8px'>Intro (150 words)</div>", unsafe_allow_html=True)
+
+        if not st.session_state.pro_intro_approved:
+            if not st.session_state.pro_intro_text:
+                with st.spinner("Writing intro..."):
+                    intro = generate_intro(title, protocol_text, outline, tone, st.session_state.api_key)
+                    st.session_state.pro_intro_text = intro
+                st.rerun()
+
+            edited_intro = st.text_area("Intro", value=st.session_state.pro_intro_text, height=180,
+                                         label_visibility="collapsed", key="pro_intro_area")
+            wc = len(edited_intro.split())
+            st.markdown(f"<div class='word-count'>{wc} words</div>", unsafe_allow_html=True)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("↻ Regenerate intro", key="pro_regen_intro"):
+                    st.session_state.pro_intro_text = ""
+                    st.rerun()
+            with col2:
+                if st.button("✓ Approve intro — write body →", key="pro_approve_intro"):
+                    st.session_state.pro_intro_text = edited_intro
+                    st.session_state.pro_intro_approved = True
+                    st.rerun()
+        else:
+            st.markdown(f"<div class='sp-locked-badge'>✓ Intro approved ({len(st.session_state.pro_intro_text.split())} words)</div>", unsafe_allow_html=True)
+
+            # --- BODY SECTIONS ---
+            if st.session_state.pro_intro_approved:
+                st.markdown("")
+                approved_body = st.session_state.pro_body_sections
+                sec_num = st.session_state.pro_body_section_num
+                total_sections = len(outline.get("sections", []))
+
+                # Show approved body sections
+                if approved_body:
+                    total_body_words = sum(len(s.split()) for s in approved_body)
+                    st.markdown(f"<div style='font-size:13px;font-weight:600;color:#111;margin-bottom:8px'>Main body — {len(approved_body)} sections approved · ~{total_body_words:,} words</div>", unsafe_allow_html=True)
+                    for i, sec_text in enumerate(approved_body):
+                        sections = outline.get("sections", [])
+                        heading = sections[i]["heading"] if i < len(sections) else f"Section {i+1}"
+                        with st.expander(f"✓ Section {i+1}: {heading}"):
+                            st.text_area("", value=sec_text, height=150, label_visibility="collapsed",
+                                         key=f"pro_body_approved_{i}", disabled=True)
+
+                # Generate / show pending body section
+                if not st.session_state.pro_conclusion_approved:
+                    all_body_done = len(approved_body) >= total_sections
+
+                    if not all_body_done:
+                        sections_list = outline.get("sections", [])
+                        current_heading = sections_list[sec_num-1]["heading"] if sec_num-1 < len(sections_list) else f"Section {sec_num}"
+
+                        st.markdown(f"<div style='font-size:13px;font-weight:600;color:#111;margin:16px 0 8px'>Section {sec_num} of {total_sections}: {current_heading}</div>", unsafe_allow_html=True)
+
+                        if not st.session_state.pro_body_pending:
+                            all_approved = [st.session_state.pro_intro_text] + approved_body
+                            with st.spinner(f"Writing section {sec_num}..."):
+                                body_sec = generate_body_section(
+                                    title, protocol_text, outline, sec_num,
+                                    all_approved, tone, st.session_state.api_key
+                                )
+                                st.session_state.pro_body_pending = body_sec
                             st.rerun()
 
-                    with col3:
-                        if st.button("⏹ Stop — assemble what I have", key="sec_stop"):
-                            st.session_state.full_sections.append(edited)
-                            st.session_state.full_section_pending = ""
-                            full_assembled = "\n\n".join(st.session_state.full_sections)
-                            st.session_state.full_generated_script = full_assembled
+                        edited_body = st.text_area(
+                            f"Section {sec_num}", value=st.session_state.pro_body_pending,
+                            height=300, label_visibility="collapsed", key=f"pro_body_pending_area"
+                        )
+                        wc = len(edited_body.split())
+                        st.markdown(f"<div class='word-count'>{wc} words</div>", unsafe_allow_html=True)
+
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            if st.button(f"↻ Regenerate section {sec_num}", key="pro_regen_body"):
+                                st.session_state.pro_body_pending = ""
+                                st.rerun()
+                        with col2:
+                            next_label = f"✓ Approve → Section {sec_num+1}" if sec_num < total_sections else "✓ Approve → Conclusion"
+                            if st.button(next_label, key="pro_approve_body"):
+                                st.session_state.pro_body_sections.append(edited_body)
+                                st.session_state.pro_body_section_num += 1
+                                st.session_state.pro_body_pending = ""
+                                st.rerun()
+                        with col3:
+                            if st.button("⏹ Stop here — write conclusion", key="pro_stop_body"):
+                                st.session_state.pro_body_sections.append(edited_body)
+                                st.session_state.pro_body_pending = ""
+                                st.session_state.pro_body_section_num = total_sections + 1
+                                st.rerun()
+
+                    # --- CONCLUSION ---
+                    else:
+                        st.markdown("<div style='font-size:13px;font-weight:600;color:#111;margin:16px 0 8px'>Conclusion (150 words)</div>", unsafe_allow_html=True)
+
+                        if not st.session_state.pro_conclusion_text:
+                            all_approved = [st.session_state.pro_intro_text] + approved_body
+                            with st.spinner("Writing conclusion..."):
+                                conclusion = generate_conclusion(
+                                    title, protocol_text, outline,
+                                    all_approved, tone, st.session_state.api_key
+                                )
+                                st.session_state.pro_conclusion_text = conclusion
                             st.rerun()
 
-                # Assembled full script download when done
-                if approved and not pending:
-                    assembled = "\n\n".join(approved)
-                    total_words = len(assembled.split())
+                        edited_conclusion = st.text_area(
+                            "Conclusion", value=st.session_state.pro_conclusion_text,
+                            height=180, label_visibility="collapsed", key="pro_conclusion_area"
+                        )
+                        wc = len(edited_conclusion.split())
+                        st.markdown(f"<div class='word-count'>{wc} words</div>", unsafe_allow_html=True)
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("↻ Regenerate conclusion", key="pro_regen_conclusion"):
+                                st.session_state.pro_conclusion_text = ""
+                                st.rerun()
+                        with col2:
+                            if st.button("✓ Approve conclusion — assemble script →", key="pro_approve_conclusion"):
+                                st.session_state.pro_conclusion_text = edited_conclusion
+                                st.session_state.pro_conclusion_approved = True
+                                # Assemble full script
+                                all_parts = [st.session_state.pro_intro_text] + st.session_state.pro_body_sections + [edited_conclusion]
+                                assembled = "\n\n".join(all_parts)
+                                st.session_state.pro_assembled = assembled
+                                # Save to history
+                                new_record = {
+                                    "id": script_num,
+                                    "date": datetime.now().isoformat(),
+                                    "protocol": protocol_text,
+                                    "script": assembled,
+                                    "anchor": st.session_state.pro_protocol.get("anchor",""),
+                                    "pov": st.session_state.pro_protocol.get("pov",""),
+                                    "constraint": st.session_state.pro_protocol.get("constraint",""),
+                                    "word_target": "12,000 words (pro mode)",
+                                    "tone": tone,
+                                }
+                                save_script(new_record)
+                                st.rerun()
+
+                # --- ASSEMBLED SCRIPT ---
+                if st.session_state.pro_conclusion_approved and st.session_state.pro_assembled:
                     st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='sp-section-label'>Full assembled script — ~{total_words:,} words</div>", unsafe_allow_html=True)
-                    st.text_area("", value=assembled, height=300,
-                                 label_visibility="collapsed", key="full_assembled_view")
+                    total_words = len(st.session_state.pro_assembled.split())
+                    st.markdown(f"<div class='sp-locked-badge'>✓ Script complete — {total_words:,} words — saved as #{script_num-1:03d}</div>", unsafe_allow_html=True)
+                    st.text_area("", value=st.session_state.pro_assembled, height=400,
+                                 label_visibility="collapsed", key="pro_assembled_view")
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        pdf_bytes = export_pdf(assembled, script_num)
-                        st.download_button("↓ PDF", pdf_bytes, file_name=f"script_{script_num:03d}_full.pdf",
-                                           mime="application/pdf", key="full_assembled_pdf")
+                        pdf = export_pdf(st.session_state.pro_assembled, script_num-1)
+                        st.download_button("↓ Download PDF", pdf, file_name=f"script_{script_num-1:03d}.pdf", mime="application/pdf")
                     with col2:
-                        docx_bytes = export_docx(assembled, script_num)
-                        st.download_button("↓ Word", docx_bytes, file_name=f"script_{script_num:03d}_full.docx",
-                                           mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                           key="full_assembled_docx")
+                        docx = export_docx(st.session_state.pro_assembled, script_num-1)
+                        st.download_button("↓ Download Word", docx, file_name=f"script_{script_num-1:03d}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                     with col3:
-                        if st.button("✕ Start new script", key="full_new"):
-                            st.session_state.full_protocol_locked = False
-                            st.session_state.full_sections = []
-                            st.session_state.full_section_pending = ""
-                            st.session_state.full_section_num = 1
-                            st.session_state.full_generated_script = ""
+                        if st.button("→ Generate titles", key="pro_to_titles"):
+                            st.session_state.generated_titles = []
+                            st.session_state.title_script = st.session_state.pro_assembled
                             st.rerun()
-
-
-
 
 elif page == "Script Generator":
     # Redirect to Divergence Protocol in full mode — they are now the same page
