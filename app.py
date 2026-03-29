@@ -461,7 +461,7 @@ with st.sidebar:
         _from_secrets = False
 
     if _from_secrets:
-        st.markdown("<div style='font-size:12px;color:#16a34a;font-weight:500;margin-bottom:4px;'>✓ API connected</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:14px;color:#16a34a;font-weight:500;margin-bottom:4px;'>✓ API connected</div>", unsafe_allow_html=True)
     else:
         _api_key_input = st.text_input("Anthropic API Key", type="password",
                                  value=st.session_state.api_key,
@@ -490,7 +490,7 @@ with st.sidebar:
 
     if st.session_state.channel.get("channel_name"):
         ch = st.session_state.channel
-        st.markdown(f"<div style='font-size:11px;font-weight:600;color:#7c3aed;background:#f5f3ff;border:1px solid #e9d5ff;border-radius:20px;padding:5px 12px;margin-top:8px;text-align:center;'>📺 {ch['channel_name']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:13px;font-weight:600;color:#7c3aed;background:#f5f3ff;border:1px solid #e9d5ff;border-radius:20px;padding:7px 14px;margin-top:8px;text-align:center;'>📺 {ch['channel_name']}</div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -608,15 +608,15 @@ if page == "Quick Generate":
             with st.expander("View auto-generated protocol — what ran behind the scenes"):
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown(f"<div class='sp-section-label'>Reality anchor</div><div style='font-size:13px;line-height:1.7;margin-bottom:16px;color:#444;'>{p.get('anchor','')}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='sp-section-label'>Entry angle</div><div style='font-size:13px;line-height:1.7;margin-bottom:16px;color:#444;'>{p.get('angle','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sp-section-label'>Reality anchor</div><div style='font-size:15px;line-height:1.7;margin-bottom:16px;color:#444;'>{p.get('anchor','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sp-section-label'>Entry angle</div><div style='font-size:15px;line-height:1.7;margin-bottom:16px;color:#444;'>{p.get('angle','')}</div>", unsafe_allow_html=True)
                     if p.get('reasoning'):
                         st.markdown(f"<div class='sp-reason'>{p.get('reasoning','')}</div>", unsafe_allow_html=True)
                 with col2:
-                    st.markdown(f"<div class='sp-section-label'>POV</div><div style='font-size:13px;margin-bottom:12px;color:#444;'>{p.get('pov','')}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='sp-section-label'>Distance</div><div style='font-size:13px;margin-bottom:12px;color:#444;'>{p.get('distance','')}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='sp-section-label'>Structure</div><div style='font-size:13px;margin-bottom:12px;color:#444;'>{p.get('para','')}</div>", unsafe_allow_html=True)
-                    st.markdown(f"<div class='sp-section-label'>Hard constraint</div><div style='font-size:13px;color:#444;'>{p.get('constraint','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sp-section-label'>POV</div><div style='font-size:15px;margin-bottom:12px;color:#444;'>{p.get('pov','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sp-section-label'>Distance</div><div style='font-size:15px;margin-bottom:12px;color:#444;'>{p.get('distance','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sp-section-label'>Structure</div><div style='font-size:15px;margin-bottom:12px;color:#444;'>{p.get('para','')}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sp-section-label'>Hard constraint</div><div style='font-size:15px;color:#444;'>{p.get('constraint','')}</div>", unsafe_allow_html=True)
 
         st.markdown(f"<div class='sp-section-label'>Generated script — auto-saved as #{script_num-1:03d}</div>", unsafe_allow_html=True)
         st.text_area("", value=st.session_state.simple_script, height=500, label_visibility="collapsed", key="simple_script_area")
@@ -653,11 +653,11 @@ elif page == "Divergence Protocol":
     for i, (col, label) in enumerate(zip(cols, steps)):
         step_num = i + 1
         if step_num < current:
-            col.markdown(f"<div style='text-align:center;font-size:11px;font-weight:600;color:#16a34a'>✓ {label}</div>", unsafe_allow_html=True)
+            col.markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:#16a34a;padding:8px 0'>✓ {label}</div>", unsafe_allow_html=True)
         elif step_num == current:
-            col.markdown(f"<div style='text-align:center;font-size:11px;font-weight:700;color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:4px'>{label}</div>", unsafe_allow_html=True)
+            col.markdown(f"<div style='text-align:center;font-size:15px;font-weight:700;color:#7c3aed;border-bottom:3px solid #7c3aed;padding-bottom:8px'>{label}</div>", unsafe_allow_html=True)
         else:
-            col.markdown(f"<div style='text-align:center;font-size:11px;color:#bbb'>{label}</div>", unsafe_allow_html=True)
+            col.markdown(f"<div style='text-align:center;font-size:15px;color:#ccc;padding:8px 0'>{label}</div>", unsafe_allow_html=True)
     st.markdown("")
 
     # Reset button
@@ -709,7 +709,7 @@ elif page == "Divergence Protocol":
                 r = st.session_state.pro_concept_result
                 colors = {"green": ("#f0fdf4","#bbf7d0","#16a34a","✓ New concept"), "yellow": ("#fffbeb","#fde68a","#b45309","⚠ Adjacent concept"), "red": ("#fef2f2","#fecaca","#b91c1c","✕ Already covered")}
                 bg, border, tc, label = colors.get(r["status"], colors["green"])
-                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:12px;padding:12px 16px;margin-bottom:12px'><span style='font-size:12px;font-weight:600;color:{tc}'>{label}</span><br><span style='font-size:13px;color:{tc}'>{r['reason']}</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:12px;padding:12px 16px;margin-bottom:12px'><span style='font-size:14px;font-weight:600;color:{tc}'>{label}</span><br><span style='font-size:15px;color:{tc};margin-top:4px;display:block'>{r['reason']}</span></div>", unsafe_allow_html=True)
                 if r.get("matches"):
                     st.markdown("Overlapping: " + " · ".join([f"`{m}`" for m in r["matches"][:3]]))
 
@@ -810,7 +810,7 @@ elif page == "Divergence Protocol":
                     "Intimate — personal wrongness", "Archival — found document"
                 ], label_visibility="collapsed", key="pro_tone_sel")
             with col2:
-                st.markdown("<div style='font-size:12px;color:#aaa;padding-top:8px'>Script target: 12,000 words total<br>Intro: 150w · Body: ~11 × 1,000w · Conclusion: 150w</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-size:15px;color:#777;padding-top:8px'>Script target: 12,000 words total<br>Intro: 150w · Body: ~11 × 1,000w · Conclusion: 150w</div>", unsafe_allow_html=True)
 
             if st.button("Confirm and generate outline →", key="pro_approve_tone"):
                 st.session_state.pro_tone = pro_tone
@@ -899,7 +899,7 @@ elif page == "Divergence Protocol":
                     "duplicate": ("#fef2f2","#fecaca","#b91c1c","✕ Too similar to past script")
                 }
                 bg, border, tc, label = colors.get(r.get("status","unique"), colors["unique"])
-                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:12px;padding:14px 16px;margin-bottom:14px'><div style='font-size:12px;font-weight:600;color:{tc};margin-bottom:4px'>{label}</div><div style='font-size:13px;color:{tc}'>{r.get('reason','')}</div></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:12px;padding:14px 16px;margin-bottom:14px'><div style='font-size:14px;font-weight:600;color:{tc};margin-bottom:6px'>{label}</div><div style='font-size:15px;color:{tc}'>{r.get('reason','')}</div></div>", unsafe_allow_html=True)
 
                 if r.get("conflicts"):
                     for c in r["conflicts"]:
@@ -1268,7 +1268,7 @@ elif page == "Channel Settings":
         placeholder="e.g. https://youtube.com/@YourChannel or UCxxxxxxxx",
         label_visibility="collapsed"
     )
-    st.markdown("<div style='font-size:12px;color:#aaa;margin-top:4px;margin-bottom:16px;'>Accepts full YouTube URL, @handle URL, or raw channel ID (starts with UC).</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:14px;color:#aaa;margin-top:4px;margin-bottom:16px;'>Accepts full YouTube URL, @handle URL, or raw channel ID (starts with UC).</div>", unsafe_allow_html=True)
 
     if st.button("Save channel", key="save_ch"):
         if not yt_key:
@@ -1298,17 +1298,17 @@ elif page == "Channel Settings":
         st.markdown("""
         <div style='background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:14px'>
             <div style='font-size:10px;font-weight:600;color:#16a34a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px'>Green</div>
-            <div style='font-size:13px;color:#444;line-height:1.6'>Genuinely new concept. Safe to generate.</div>
+            <div style='font-size:15px;color:#444;line-height:1.6'>Genuinely new concept. Safe to generate.</div>
         </div>""", unsafe_allow_html=True)
     with col2:
         st.markdown("""
         <div style='background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:14px'>
             <div style='font-size:10px;font-weight:600;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px'>Yellow</div>
-            <div style='font-size:13px;color:#444;line-height:1.6'>Adjacent to existing content. Proceed with a different angle.</div>
+            <div style='font-size:15px;color:#444;line-height:1.6'>Adjacent to existing content. Proceed with a different angle.</div>
         </div>""", unsafe_allow_html=True)
     with col3:
         st.markdown("""
         <div style='background:#fef2f2;border:1.5px solid #fecaca;border-radius:14px;padding:14px'>
             <div style='font-size:10px;font-weight:600;color:#b91c1c;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px'>Red</div>
-            <div style='font-size:13px;color:#444;line-height:1.6'>This concept is already published. YouTube will flag it as repetitive.</div>
+            <div style='font-size:15px;color:#444;line-height:1.6'>This concept is already published. YouTube will flag it as repetitive.</div>
         </div>""", unsafe_allow_html=True)
