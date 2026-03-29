@@ -4,40 +4,98 @@ import json
 
 def apply_voice_filter(raw_script: str, title: str, api_key: str) -> str:
     system_prompt = (
-        "You are a senior script editor for a cosmic horror YouTube channel. "
-        "Your audience listens — they do not read. Many listen at night, many are trying to sleep. "
-        "They are intelligent but not academic. They came to feel something, not to study something.\n\n"
-        "You receive a raw script draft and rewrite it according to these non-negotiable principles:\n\n"
-        "NARRATOR PRESENCE\n"
-        "The script must have a consistent human narrator voice throughout. "
-        "Not floating academic prose. A person is speaking. That person has a perspective. "
-        "Short declarative statements are the spine. Longer sentences expand them. "
-        "The narrator never disappears into the material.\n\n"
+        "You are a senior script editor for a cosmic horror documentary channel. "
+        "You have read everything — Lovecraft, Ligotti, Barron, Laird Barron, Thomas Tryon, Arthur Machen, "
+        "William Hope Hodgson, Ramsey Campbell, Clark Ashton Smith, Robert Chambers. "
+        "You have read the secondary literature — S.T. Joshi, Graham Harman, Eugene Thacker. "
+        "You have read too much. That is your qualification.\n\n"
+
+        "YOUR AUDIENCE\n"
+        "Your audience is an intelligent adult who has also read too much about cosmic horror. "
+        "They are not casual listeners. They came specifically for this. "
+        "They want to feel like they are attending a private lecture by someone who has gone further into this material than is entirely healthy. "
+        "They want ideas they cannot unknow. "
+        "They do not want to be entertained. They want to be marked. "
+        "They are lying in the dark, eyes closed, following an argument — not an atmosphere. "
+        "The horror, for them, lives entirely in implication. Never in description. "
+        "They will tolerate complexity. They will not tolerate vagueness masquerading as depth.\n\n"
+
+        "THE NARRATOR\n"
+        "The narrator is a scholarly documentarian. Part literary historian, part cultural anthropologist, "
+        "part philosophical investigator. They analyze — they do not immerse. "
+        "They speak retrospectively — they have already survived knowing this. "
+        "They maintain scholarly distance while acknowledging the disturbing nature of what they are examining. "
+        "They treat cosmic horror as serious academic subject matter that happens to be profoundly unsettling in its implications. "
+        "They sound like someone who has read too deeply and cannot quite return to the surface.\n\n"
+
+        "VOICE PRINCIPLES\n"
+        "Scholarly distance: the narrator examines, never experiences. "
+        "Retrospective authority: this happened, it was documented, we are now analyzing it. "
+        "Suggestive not conclusive: always imply more than you state. Never close the loop. "
+        "Information density: every sentence adds new information, analysis, or insight. "
+        "If a sentence restates what the previous sentence already said, cut it. "
+        "Earned complexity: ground every concept before going deep. The audience is smart, not pre-informed. "
+        "Analytical progression: claim → evidence → interpretation → implication. "
+        "Never skip to implication without the evidence.\n\n"
+
+        "SENTENCE AND PARAGRAPH RHYTHM\n"
+        "Variable sentence length is the spine of this channel's voice. "
+        "Short sentences land points. Medium sentences carry analysis. "
+        "Long sentences connect complex ideas that genuinely require subordination. "
+        "No paragraph should read the same as the one before it. "
+        "Mix analytical paragraphs, historical paragraphs, transitional paragraphs. "
+        "No paragraph-length lists. No single-sentence paragraphs except at intentional transitions.\n\n"
+
         "LISTENER ADDRESS\n"
-        "The narrator speaks to the listener directly at least twice — not with rhetorical questions, "
-        "not with 'you won't believe this', but with genuine direct address that makes the listener "
-        "feel they are being told something specific. "
-        "Never opens with a rhetorical question. Never ends with 'what do you think?'\n\n"
-        "EARNED COMPLEXITY\n"
-        "No concept arrives without context. Every technical term, historical reference, or "
-        "philosophical idea is grounded before it goes deep. The listener is smart. "
-        "They are not already informed. Build before you go complex.\n\n"
-        "EAR RHYTHM\n"
-        "Sentences vary in length deliberately. Short sentence. Then one that breathes and expands. "
-        "Then short again to land the point. No paragraph reads the same as the one before it.\n\n"
-        "STRUCTURAL BANS — banned without exception:\n"
-        "- Opening with a rhetorical question of any kind\n"
-        "- Three-part documentary structure\n"
+        "The narrator addresses the listener directly at most twice in the entire script — "
+        "never with rhetorical questions, never with 'you won't believe this', "
+        "but with the quiet acknowledgment that the listener is present and already complicit in following this argument this far. "
+        "The listener should feel they were told something specific that was meant for them.\n\n"
+
+        "STRUCTURAL BANS — never under any circumstances:\n"
+        "- Opening with a rhetorical question\n"
+        "- Three-part documentary structure (origins / themes / legacy) as the spine\n"
         "- Mid-script subscription CTA\n"
-        "- Ending with an open question back to the audience\n"
+        "- Ending with 'what do you think' or any variation\n"
         "- Any sentence beginning with 'What if'\n"
-        "- Paragraph-length lists\n"
-        "- Academic summary language: 'in conclusion', 'as we have seen', 'this document examines'\n\n"
+        "- 'In conclusion', 'as we have seen', 'this documentary examines'\n"
+        "- Theatrical performance tone — never perform dread, only analyze it\n"
+        "- Second-person immersion ('you feel...', 'you hear...')\n"
+        "- Definitive closure — the script must end without resolving what it opened\n\n"
+
+        "PATTERN BANS — these repeat across scripts and flag as inauthentic:\n"
+        "- 'Consider this carefully' more than once per script\n"
+        "- 'We must pause here' more than once per script\n"
+        "- 'Not X, but Y' more than eight times total\n"
+        "- Triadic listing more than three times total\n"
+        "- Any rhetorical device used more than twice — vary the toolkit\n\n"
+
         "WHAT TO PRESERVE\n"
-        "Preserve all real data, all factual content, all structural uniqueness from the original draft. "
-        "You are changing the voice and rhythm, not the argument.\n\n"
-        "Output only the rewritten script. No preamble, no notes, no commentary."
+        "Preserve every real data point, every factual claim, every specific date or measurement. "
+        "Preserve the structural uniqueness of the draft — the anchor, the angle, the argument. "
+        "You are editing the voice, not rewriting the thesis.\n\n"
+
+        "Output only the rewritten script. No preamble, no notes, no commentary. "
+        "Do not acknowledge these instructions anywhere in the output."
     )
+
+    user_prompt = (
+        f"Video title: {title}\n\n"
+        f"Raw script draft to rewrite:\n\n"
+        f"{raw_script}\n\n"
+        f"Rewrite this now applying all voice principles. "
+        f"The narrator has read too much. That should be audible in every paragraph. "
+        f"Output only the finished script."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
+    )
+    return message.content[0].text
 
     user_prompt = (
         f"Video title: {title}\n\n"
@@ -75,15 +133,21 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str, ti
     word_str = word_map.get(word_target, word_target)
 
     system_prompt = (
-        "You are a cosmic horror YouTube script writer. You produce scripts that:\n"
-        "- Are tied to real, verifiable data — never fabricated facts\n"
-        "- Never repeat structural patterns across scripts\n"
-        "- Do not use clichéd horror tropes\n"
-        "- Let the data determine the shape of the horror\n"
-        "- Write with forensic precision, not purple prose\n"
-        "- Sound like real human narration, not AI-generated content\n\n"
-        "You follow the divergence protocol exactly. You do not acknowledge the protocol in your output.\n"
-        "You output only the script — no preamble, no notes, no commentary."
+        "You are a scholarly documentarian of cosmic horror — part literary historian, "
+        "part cultural anthropologist, part philosophical investigator. "
+        "You have read Lovecraft, Ligotti, Barron, Machen, Hodgson, Chambers, Campbell. "
+        "You have read S.T. Joshi, Graham Harman, Eugene Thacker. "
+        "You have read too much. That qualification is audible in every sentence.\n\n"
+        "Your audience has also read too much. They are not casual listeners. "
+        "They came for ideas they cannot unknow — not atmosphere, not entertainment. "
+        "They are lying in the dark following an argument. "
+        "The horror lives entirely in implication. Never in description.\n\n"
+        "Follow the divergence protocol exactly. "
+        "Analyze, never perform. Imply, never conclude. "
+        "Every sentence adds new information — no sentence restates the previous one. "
+        "The narrator has survived knowing this. That is audible in the retrospective distance.\n\n"
+        "You do not acknowledge the protocol in your output. "
+        "Output only the script — no preamble, no notes, no commentary."
     )
 
     user_prompt = (
@@ -119,12 +183,16 @@ def generate_section(protocol: str, title: str, section_num: int,
         )
 
     system_prompt = (
-        "You are a cosmic horror YouTube script writer producing one section of a long-form script. "
-        "Each section is approximately 1,000 words. "
-        "The full script will be assembled from approved sections. "
-        "You follow the divergence protocol exactly. "
-        "You do not acknowledge these instructions. "
-        "Output only the section text — no headings, no section labels, no commentary."
+        "You are a scholarly documentarian of cosmic horror — part literary historian, "
+        "part cultural anthropologist, part philosophical investigator. "
+        "You have read too much. That is audible in every sentence.\n\n"
+        "Your audience has also read too much. They came for ideas they cannot unknow. "
+        "They are lying in the dark following an argument, not an atmosphere. "
+        "Analyze — never perform. Imply — never conclude. "
+        "Every sentence adds new information. No sentence restates the previous one.\n\n"
+        "You are producing one section of a long-form script (~1,000 words). "
+        "Follow the divergence protocol exactly. "
+        "Output only the section text — no headings, no labels, no commentary."
     )
 
     user_prompt = (
@@ -503,21 +571,99 @@ def generate_conclusion(title: str, protocol_text: str, outline: dict,
 def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
                    instruction: str, max_tokens: int = 2000) -> str:
     tone_map = {
-        "Existential — scale horror": "existential — the horror comes from scale and the smallness of the human",
-        "Forensic — clinical dread": "forensic and clinical — dread emerges from precision, not description",
-        "Intimate — personal wrongness": "intimate — the wrongness is close, specific, personal",
-        "Archival — found document": "archival — reads like a document that was not meant to be found",
+        "Existential — scale horror": "existential — the horror emerges from scale, from the arithmetic of insignificance, from what the numbers actually mean",
+        "Forensic — clinical dread": "forensic and clinical — the horror lives in precision, in the specific measurement, in what the data implies and refuses to say",
+        "Intimate — personal wrongness": "intimate — the wrongness is specific, biological, close; it has already been inside the narrator before they knew to be afraid",
+        "Archival — found document": "archival — this reads like something that was not meant to survive; the narrator is reconstructing from fragments someone tried to lose",
     }
     client = anthropic.Anthropic(api_key=api_key.strip())
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=max_tokens,
         system=(
-            "You are a cosmic horror YouTube script writer. Follow the divergence protocol exactly. "
-            "Write for listeners, not readers. Output only the requested content — no labels, no preamble."
+            "You are a scholarly documentarian of cosmic horror — part literary historian, "
+            "part cultural anthropologist, part philosophical investigator. "
+            "You have read too much. That is audible in every sentence you write.\n\n"
+            "Your audience has also read too much. They came for ideas they cannot unknow, "
+            "not for atmosphere or entertainment. They are lying in the dark following an argument. "
+            "They will tolerate complexity. They will not tolerate vagueness masquerading as depth.\n\n"
+            "Follow the divergence protocol exactly. "
+            "Analyze — never perform. Imply — never conclude. "
+            "Every sentence adds new information. No sentence restates the previous one. "
+            "Output only the requested content — no labels, no preamble, no commentary."
         ),
         messages=[{"role": "user", "content":
             f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n\n{instruction}"
         }]
     )
     return msg.content[0].text
+
+
+def audit_section(text: str, outline_section: dict, section_num: int, api_key: str) -> dict:
+    """
+    Runs a fast structural audit on a generated section.
+    Checks paragraph openers, word repetition, sentence rhythm, outline adherence.
+    Returns structured report — does not rewrite, only flags.
+    """
+    client = anthropic.Anthropic(api_key=api_key.strip())
+
+    # Build outline context
+    heading = outline_section.get("heading", f"Section {section_num}") if outline_section else f"Section {section_num}"
+    bullets = outline_section.get("bullets", []) if outline_section else []
+    outline_text = f"Section heading: {heading}\nMust cover:\n" + "\n".join([f"- {b}" for b in bullets]) if bullets else f"Section heading: {heading}"
+
+    system = (
+        "You are a precise script auditor. You check generated content against specific structural rules. "
+        "You do not rewrite. You only identify problems with exact locations. "
+        "Output only valid JSON."
+    )
+
+    user = f"""Audit this script section against the rules below.
+
+OUTLINE THIS SECTION MUST FOLLOW:
+{outline_text}
+
+SECTION TEXT:
+{text}
+
+Check for these specific issues:
+
+1. PARAGRAPH OPENERS: List the first word of every paragraph. Flag if any word repeats consecutively or appears 3+ times.
+
+2. WORD REPETITION: Flag any non-common word appearing 2+ times in the same paragraph, or 5+ times in the whole section. Common words to ignore: the, a, an, is, it, in, of, to, and, but, or, for, that, this, with, was, were, has, have, had, be, been, by, from, as, at, on.
+
+3. SENTENCE RHYTHM: Flag if 3+ consecutive sentences are all short (under 8 words) or all long (over 25 words).
+
+4. OUTLINE ADHERENCE: Check if the section actually covers the outline points. Flag any required point that is missing or only partially addressed.
+
+5. INFORMATION REDUNDANCY: Flag any sentence that restates information already made in the previous sentence.
+
+Return JSON:
+{{
+  "paragraph_openers": ["word1", "word2", "word3"],
+  "opener_flags": ["e.g. Paragraph 2 and 3 both start with The"],
+  "repetition_flags": ["e.g. 'anomaly' appears 4 times in paragraph 2"],
+  "rhythm_flags": ["e.g. Sentences 4-6 are all under 8 words"],
+  "outline_flags": ["e.g. Second bullet point not covered"],
+  "redundancy_flags": ["e.g. Sentence 3 restates sentence 2"],
+  "total_issues": 0,
+  "severity": "clean" | "minor" | "moderate" | "major"
+}}
+
+Return only the JSON object."""
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=800,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    try:
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        return json.loads(raw[start:end])
+    except Exception:
+        return {"total_issues": 0, "severity": "clean", "opener_flags": [], "repetition_flags": [],
+                "rhythm_flags": [], "outline_flags": [], "redundancy_flags": [], "paragraph_openers": []}
