@@ -51,10 +51,10 @@ h1, h2, h3 {
     border: none !important;
     color: #fff !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 13px !important;
+    font-size: 15px !important;
     font-weight: 500 !important;
     border-radius: 10px !important;
-    padding: 10px 20px !important;
+    padding: 11px 22px !important;
     transition: opacity 0.15s !important;
 }
 
@@ -75,8 +75,8 @@ h1, h2, h3 {
     color: #111 !important;
     font-family: 'Inter', sans-serif !important;
     border-radius: 12px !important;
-    font-size: 14px !important;
-    padding: 12px 16px !important;
+    font-size: 16px !important;
+    padding: 14px 18px !important;
 }
 
 .stTextInput > div > div > input:focus,
@@ -90,7 +90,7 @@ h1, h2, h3 {
     border: 1.5px solid #e8e8e8 !important;
     border-radius: 12px !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 13px !important;
+    font-size: 15px !important;
 }
 
 [data-testid="stExpander"] {
@@ -110,12 +110,13 @@ h1, h2, h3 {
 .stMarkdown p, .stMarkdown li {
     color: #444 !important;
     font-family: 'Inter', sans-serif !important;
-    font-size: 14px !important;
+    font-size: 16px !important;
 }
 
 .stRadio > label, .stCheckbox > label {
     color: #444 !important;
     font-family: 'Inter', sans-serif !important;
+    font-size: 15px !important;
 }
 
 .stSpinner > div {
@@ -123,7 +124,7 @@ h1, h2, h3 {
 }
 
 .sp-hero-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     color: #7c3aed;
     letter-spacing: 0.08em;
@@ -133,7 +134,7 @@ h1, h2, h3 {
 }
 
 .sp-hero-title {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
     color: #111;
     letter-spacing: -0.025em;
@@ -142,17 +143,17 @@ h1, h2, h3 {
 }
 
 .sp-hero-sub {
-    font-size: 14px;
+    font-size: 16px;
     color: #999;
     text-align: center;
     margin-bottom: 28px;
 }
 
 .sp-section-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    color: #bbb;
-    letter-spacing: 0.1em;
+    color: #999;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-bottom: 10px;
     margin-top: 4px;
@@ -162,10 +163,10 @@ h1, h2, h3 {
     background: #faf5ff;
     border: 1px solid #e9d5ff;
     border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 12px;
+    padding: 14px 18px;
+    font-size: 14px;
     color: #6d28d9;
-    line-height: 1.6;
+    line-height: 1.7;
     margin-bottom: 20px;
 }
 
@@ -185,22 +186,22 @@ h1, h2, h3 {
 }
 
 .sp-dot {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
 .sp-card-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    color: #bbb;
-    letter-spacing: 0.08em;
+    color: #999;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
 .sp-card-val {
-    font-size: 12px;
+    font-size: 14px;
     color: #555;
     line-height: 1.6;
 }
@@ -211,8 +212,8 @@ h1, h2, h3 {
     color: #fff;
     border: none;
     border-radius: 14px;
-    padding: 15px;
-    font-size: 14px;
+    padding: 16px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
@@ -220,10 +221,10 @@ h1, h2, h3 {
     margin-top: 4px;
 }
 
-.sp-locked-badge {
+{
     background: #f0fdf4;
     color: #16a34a;
-    font-size: 12px;
+    font-size: 14px;
     padding: 6px 14px;
     border-radius: 20px;
     font-weight: 500;
@@ -248,29 +249,29 @@ h1, h2, h3 {
 .sp-approved-badge {
     background: #f0fdf4;
     color: #16a34a;
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 20px;
     letter-spacing: 0.05em;
 }
 
 .sp-pending-label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     color: #111;
     margin-bottom: 12px;
 }
 
 .sp-sidebar-brand {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: #111;
     letter-spacing: -0.02em;
 }
 
 .sp-sidebar-sub {
-    font-size: 11px;
+    font-size: 13px;
     color: #bbb;
     margin-top: 2px;
 }
@@ -297,7 +298,7 @@ h1, h2, h3 {
 }
 
 .sp-stat-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #bbb;
     letter-spacing: 0.08em;
@@ -306,16 +307,16 @@ h1, h2, h3 {
 }
 
 .sp-stat-num {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     color: #111;
     letter-spacing: -0.02em;
 }
 
 .sp-nav-item {
-    padding: 8px 12px;
+    padding: 9px 14px;
     border-radius: 9px;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     color: #888;
     cursor: pointer;
@@ -336,7 +337,7 @@ h1, h2, h3 {
 }
 
 .sp-tag {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     padding: 3px 10px;
     border-radius: 20px;
