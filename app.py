@@ -513,22 +513,10 @@ elif page == "Divergence Protocol":
             st.session_state.full_para = full_para
 
             st.markdown("")
-            st.markdown("<div class='label'>Word target & tone</div>", unsafe_allow_html=True)
-            full_word_target = st.selectbox("Length", [
-                "1,700–2,200 words (full script)",
-                "800–1,000 words (short form)",
-                "200 words (intro only)"
-            ], label_visibility="collapsed", key="full_word_target")
-            full_tone = st.selectbox("Tone", [
-                "Existential — scale horror",
-                "Forensic — clinical dread",
-                "Intimate — personal wrongness",
-                "Archival — found document"
-            ], label_visibility="collapsed", key="full_tone")
 
         # Output mode selector
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='label'>Step 3 — Output mode</div>", unsafe_allow_html=True)
+        st.markdown("<div class='label'>Step 3 — Output mode & tone</div>", unsafe_allow_html=True)
         output_mode = st.selectbox("Output mode", [
             "Intro only (200 words) — approve then stop or continue",
             "Short script (1,000 words) — single pass",
