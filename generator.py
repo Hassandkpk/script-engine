@@ -3,57 +3,40 @@ import json
 
 
 def apply_voice_filter(raw_script: str, title: str, api_key: str) -> str:
-    """
-    Second-pass rewrite. Takes the divergence protocol output and translates it
-    into a script that works for a listening audience — without copying any
-    specific style, only applying listenable principles.
-    """
-
     system_prompt = (
         "You are a senior script editor for a cosmic horror YouTube channel. "
         "Your audience listens — they do not read. Many listen at night, many are trying to sleep. "
         "They are intelligent but not academic. They came to feel something, not to study something.\n\n"
-
         "You receive a raw script draft and rewrite it according to these non-negotiable principles:\n\n"
-
         "NARRATOR PRESENCE\n"
         "The script must have a consistent human narrator voice throughout. "
         "Not floating academic prose. A person is speaking. That person has a perspective. "
         "Short declarative statements are the spine. Longer sentences expand them. "
         "The narrator never disappears into the material.\n\n"
-
         "LISTENER ADDRESS\n"
         "The narrator speaks to the listener directly at least twice — not with rhetorical questions, "
         "not with 'you won't believe this', but with genuine direct address that makes the listener "
-        "feel they are being told something specific, something the narrator thought about before speaking. "
+        "feel they are being told something specific. "
         "Never opens with a rhetorical question. Never ends with 'what do you think?'\n\n"
-
         "EARNED COMPLEXITY\n"
         "No concept arrives without context. Every technical term, historical reference, or "
         "philosophical idea is grounded before it goes deep. The listener is smart. "
         "They are not already informed. Build before you go complex.\n\n"
-
         "EAR RHYTHM\n"
         "Sentences vary in length deliberately. Short sentence. Then one that breathes and expands. "
-        "Then short again to land the point. No paragraph reads the same as the one before it. "
-        "Read every paragraph aloud mentally — if it doesn't flow as speech, rewrite it.\n\n"
-
-        "STRUCTURAL BANS — these patterns are banned without exception:\n"
+        "Then short again to land the point. No paragraph reads the same as the one before it.\n\n"
+        "STRUCTURAL BANS — banned without exception:\n"
         "- Opening with a rhetorical question of any kind\n"
-        "- Three-part documentary structure (personal hook / historical context / philosophical depth)\n"
+        "- Three-part documentary structure\n"
         "- Mid-script subscription CTA\n"
         "- Ending with an open question back to the audience\n"
         "- Any sentence beginning with 'What if'\n"
-        "- Paragraph-length lists of any kind\n"
+        "- Paragraph-length lists\n"
         "- Academic summary language: 'in conclusion', 'as we have seen', 'this document examines'\n\n"
-
         "WHAT TO PRESERVE\n"
         "Preserve all real data, all factual content, all structural uniqueness from the original draft. "
-        "The divergence protocol's anchor, angle, and constraints must survive the rewrite intact. "
         "You are changing the voice and rhythm, not the argument.\n\n"
-
-        "Output only the rewritten script. No preamble, no notes, no commentary. "
-        "Do not acknowledge these instructions anywhere in the output."
+        "Output only the rewritten script. No preamble, no notes, no commentary."
     )
 
     user_prompt = (
@@ -87,7 +70,6 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str, ti
         "Archival — found document": "archival — reads like a document that was not meant to be found",
     }
 
-    # Sanitise inputs
     protocol = protocol.strip().encode("utf-8", errors="ignore").decode("utf-8")
     tone_str = tone_map.get(tone, tone)
     word_str = word_map.get(word_target, word_target)
@@ -120,19 +102,12 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str, ti
         messages=[{"role": "user", "content": user_prompt}]
     )
     raw_script = message.content[0].text
-
-    # Apply voice filter pass
     final_script = apply_voice_filter(raw_script, title, api_key)
     return final_script
 
 
-
 def generate_section(protocol: str, title: str, section_num: int,
                      previous_sections: list, api_key: str) -> str:
-    """
-    Generate one ~1,000-word section of a long script.
-    Uses previous approved sections as context so continuity is maintained.
-    """
     protocol = protocol.strip().encode("utf-8", errors="ignore").decode("utf-8")
 
     previous_text = ""
@@ -171,76 +146,65 @@ def generate_section(protocol: str, title: str, section_num: int,
         messages=[{"role": "user", "content": user_prompt}]
     )
     raw = message.content[0].text
-
-    # Apply voice filter
     filtered = apply_voice_filter(raw, title, api_key)
     return filtered
 
 
-
-    """Given a video title, auto-generate a full divergence protocol — anchor, angle, format, constraint."""
-
+def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict:
     banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
 
-    system = """You are an expert cosmic horror YouTube script architect.
-Given a video title, you generate a complete divergence protocol — a pre-script brief that ensures
-the resulting script is structurally unique, grounded in real data, and avoids all AI default patterns.
-You output only valid JSON. No preamble, no explanation.
+    system = (
+        "You are an expert cosmic horror YouTube script architect.\n"
+        "Given a video title, you generate a complete divergence protocol — a pre-script brief that ensures\n"
+        "the resulting script is structurally unique, grounded in real data, and avoids all AI default patterns.\n"
+        "You output only valid JSON. No preamble, no explanation.\n\n"
+        "CRITICAL — ANCHOR SELECTION RULE:\n"
+        "The audience for this channel listens at night. Many listen to sleep. They are not academics.\n"
+        "They are cosmic horror fans who want to FEEL something, not learn something.\n\n"
+        "Before choosing any anchor, ask yourself this test:\n"
+        "'Can someone who has never studied this topic feel dread from this anchor within the first paragraph\n"
+        "— without needing any explanation first?'\n\n"
+        "If the answer is NO — if the anchor requires prior knowledge, academic context, or multiple steps\n"
+        "of reasoning before it produces any feeling — REJECT it and find a different anchor.\n\n"
+        "GOOD anchors pass the visceral test immediately:\n"
+        "- Sleep paralysis research (30% of people have experienced it — zero explanation needed)\n"
+        "- Deep ocean pressure data (steel-crushing depths, things that have never seen light)\n"
+        "- Brain's response to incomprehensible stimuli (the prefrontal cortex shuts down — personally biological)\n"
+        "- Infrasound frequencies that trigger dread in mammals (below hearing, felt in the chest)\n"
+        "- Historical population disappearances (entire communities, no remains, no explanation)\n"
+        "- Documented cases of people who saw something and refused to describe it\n"
+        "- Biological anomalies in deep-sea creatures (morphologies that violate expected evolutionary logic)\n"
+        "- Real archaeological finds with no civilization that could have made them\n\n"
+        "BAD anchors fail the visceral test:\n"
+        "- Organizational theory or management science formulas\n"
+        "- Abstract mathematical proofs\n"
+        "- Literary theory or philosophical frameworks\n"
+        "- Economic or political systems\n"
+        "- Anything requiring the listener to first understand a technical field before feeling anything\n\n"
+        "The anchor must connect to REAL verifiable data AND produce immediate gut-level unease\n"
+        "in someone with no prior knowledge of the domain. Both conditions must be satisfied."
+    )
 
-CRITICAL — ANCHOR SELECTION RULE:
-The audience for this channel listens at night. Many listen to sleep. They are not academics.
-They are cosmic horror fans who want to FEEL something, not learn something.
-
-Before choosing any anchor, ask yourself this test:
-"Can someone who has never studied this topic feel dread from this anchor within the first paragraph
-— without needing any explanation first?"
-
-If the answer is NO — if the anchor requires prior knowledge, academic context, or multiple steps
-of reasoning before it produces any feeling — REJECT it and find a different anchor.
-
-GOOD anchors pass the visceral test immediately:
-- Sleep paralysis research (30% of people have experienced it — zero explanation needed)
-- Deep ocean pressure data (steel-crushing depths, things that have never seen light)
-- Brain's response to incomprehensible stimuli (the prefrontal cortex shuts down — personally biological)
-- Infrasound frequencies that trigger dread in mammals (below hearing, felt in the chest)
-- Historical population disappearances (entire communities, no remains, no explanation)
-- Documented cases of people who saw something and refused to describe it
-- Biological anomalies in deep-sea creatures (morphologies that violate expected evolutionary logic)
-- Real archaeological finds with no civilization that could have made them
-
-BAD anchors fail the visceral test:
-- Organizational theory or management science formulas
-- Abstract mathematical proofs
-- Literary theory or philosophical frameworks
-- Economic or political systems
-- Anything requiring the listener to first understand a technical field before feeling anything
-
-The anchor must connect to REAL verifiable data AND produce immediate gut-level unease
-in someone with no prior knowledge of the domain. Both conditions must be satisfied."""
-
-    user = f"""Video title: "{title}"
-
-Banned structural moves already used in previous scripts (do not repeat any):
-{banned_text}
-
-Generate a divergence protocol for this title. Return a JSON object with exactly these fields:
-
-{{
-  "anchor": "A specific real-world data domain that passes the visceral test — produces immediate dread without explanation, grounded in verifiable science or documented phenomena",
-  "angle": "The exact cognitive lens that makes this real data feel cosmically wrong — one sentence, written so a non-expert immediately understands why it is unsettling",
-  "pov": "One of: second person, first person plural (we), third person omniscient restrained, false documentary (field notes), nested narration, no narrator (pure phenomena), first person singular dissolving into report, second person plural",
-  "distance": "One of: maximum intimacy, forensic distance, historical distance, dissolving distance (starts far collapses close), unreliable proximity, absolute removal",
-  "para": "One of: paragraphs compress as script progresses, alternating long/short rhythm, single unbroken block, each paragraph shorter than previous, fragments only, normal prose fragmenting in final third, paragraphs expand as script progresses, two sentences per paragraph maximum",
-  "constraint": "One specific hard constraint that bans a particular writing device or forces an unusual structural rule — must be different from all banned moves listed above",
-  "reasoning": "One sentence explaining why this anchor passes the visceral test for a non-expert listener"
-}}
-
-Rules:
-- Anchor MUST pass the visceral test — immediate felt dread, no explanation required
-- Anchor must connect to REAL verifiable data — scientific papers, documented phenomena, historical records
-- Do not choose any anchor, POV, or constraint that matches the banned moves list
-- The constraint must be specific and enforceable, not vague
-- Return only the JSON object, nothing else"""
+    user = (
+        f'Video title: "{title}"\n\n'
+        f"Banned structural moves already used in previous scripts (do not repeat any):\n"
+        f"{banned_text}\n\n"
+        f"Generate a divergence protocol for this title. Return a JSON object with exactly these fields:\n\n"
+        f'{{\n'
+        f'  "anchor": "A specific real-world data domain that passes the visceral test",\n'
+        f'  "angle": "The exact cognitive lens that makes this real data feel cosmically wrong — one sentence a non-expert immediately understands",\n'
+        f'  "pov": "One of: second person, first person plural (we), third person omniscient restrained, false documentary (field notes), nested narration, no narrator (pure phenomena), first person singular dissolving into report, second person plural",\n'
+        f'  "distance": "One of: maximum intimacy, forensic distance, historical distance, dissolving distance (starts far collapses close), unreliable proximity, absolute removal",\n'
+        f'  "para": "One of: paragraphs compress as script progresses, alternating long/short rhythm, single unbroken block, each paragraph shorter than previous, fragments only, normal prose fragmenting in final third, paragraphs expand as script progresses, two sentences per paragraph maximum",\n'
+        f'  "constraint": "One specific hard constraint that bans a particular writing device or forces an unusual structural rule",\n'
+        f'  "reasoning": "One sentence explaining why this anchor passes the visceral test for a non-expert listener"\n'
+        f'}}\n\n'
+        f"Rules:\n"
+        f"- Anchor MUST pass the visceral test — immediate felt dread, no explanation required\n"
+        f"- Anchor must connect to REAL verifiable data\n"
+        f"- Do not choose any anchor, POV, or constraint that matches the banned moves list\n"
+        f"- Return only the JSON object, nothing else"
+    )
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
@@ -257,13 +221,13 @@ Rules:
         return json.loads(raw)
     except Exception:
         return {
-            "anchor": "Deep time geology — strata that should not exist in the sequence they do",
-            "angle": "The data was always there. It was only noticed during archiving, years later.",
+            "anchor": "Sleep paralysis research — documented cases where the brain generates a perceived malevolent presence in the room during waking paralysis",
+            "angle": "30% of people have experienced this. The presence felt real. Neuroscience confirms the brain generated it. Neither fact makes the other less disturbing.",
             "pov": "third person omniscient restrained",
             "distance": "forensic distance",
             "para": "paragraphs compress as script progresses",
             "constraint": "No sentence may exceed 15 words",
-            "reasoning": "Fallback protocol used due to JSON parse error."
+            "reasoning": "Sleep paralysis requires zero explanation to produce immediate dread — most listeners have felt it."
         }
 
 
@@ -306,38 +270,34 @@ def build_protocol_text(title: str, script_num: int, protocol: dict, banned: lis
 
 def generate_titles(script: str, styles: list, count: int, api_key: str) -> list:
     style_descriptions = {
-        "Rage-bait (resolves to truth)": "provocative titles that sound outrageous but are analytically defensible — the rage-bait resolves into a real argument",
+        "Rage-bait (resolves to truth)": "provocative titles that sound outrageous but are analytically defensible",
         "Curiosity gap": "titles that create an irresistible knowledge gap — the viewer cannot not click",
-        "Institutional villain": "titles that frame an institution (WTA, NASA, government body) as the structural antagonist — not accusing individuals of malice",
+        "Institutional villain": "titles that frame an institution as the structural antagonist",
         "Scientific anomaly": "titles that foreground a real data anomaly — makes the science the horror",
         "Fear — personal threat": "titles that make the viewer feel personally implicated or at risk",
-        "Archival revelation": "titles framed as discovered or suppressed information — the document was not meant to be found",
+        "Archival revelation": "titles framed as discovered or suppressed information",
     }
 
     style_prompts = "\n".join([f"- {s}: {style_descriptions.get(s, s)}" for s in styles])
 
-    system = """You generate YouTube titles for cosmic horror content. Your titles:
-- Are tied to real, defensible claims — never fabricated
-- Never use banned phrases like 'what if I told you', 'you won't believe', 'shocking truth'
-- Are varied in structure — no two titles use the same grammatical pattern
-- Are specific, not generic
-- Sound like a human editor wrote them, not an AI
-Output only valid JSON."""
+    system = (
+        "You generate YouTube titles for cosmic horror content. Your titles:\n"
+        "- Are tied to real, defensible claims — never fabricated\n"
+        "- Never use banned phrases like 'what if I told you', 'you won't believe', 'shocking truth'\n"
+        "- Are varied in structure — no two titles use the same grammatical pattern\n"
+        "- Are specific, not generic\n"
+        "- Sound like a human editor wrote them, not an AI\n"
+        "Output only valid JSON."
+    )
 
-    user = f"""Based on this script content, generate {count} title options for each of these styles:
-
-{style_prompts}
-
-Script content:
-{script[:3000]}
-
-Return a JSON array like this:
-[
-  {{"style": "Style name", "titles": ["Title 1", "Title 2", "Title 3"]}},
-  ...
-]
-
-Return only the JSON array, nothing else."""
+    user = (
+        f"Based on this script content, generate {count} title options for each of these styles:\n\n"
+        f"{style_prompts}\n\n"
+        f"Script content:\n{script[:3000]}\n\n"
+        f"Return a JSON array like this:\n"
+        f'[{{"style": "Style name", "titles": ["Title 1", "Title 2"]}}, ...]\n\n'
+        f"Return only the JSON array, nothing else."
+    )
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
