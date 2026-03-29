@@ -50,7 +50,6 @@ def save_banned(banned: list):
         db = _client()
         if not db:
             return
-        # Delete all existing rows then reinsert — simplest approach for a small list
         db.table("banned_moves").delete().gte("id", 0).execute()
         if banned:
             rows = [{"move": b["move"], "type": b["type"]} for b in banned]
@@ -79,11 +78,6 @@ def save_script(script_record: dict):
 
 
 def load_recent_fingerprints(limit: int = 15) -> list:
-    """
-    Pull structural fingerprints from the last N scripts.
-    Returns a list of dicts with anchor, pov, distance, para, constraint, tone.
-    Used to prevent the protocol generator repeating structural choices.
-    """
     try:
         db = _client()
         if not db:
@@ -94,7 +88,6 @@ def load_recent_fingerprints(limit: int = 15) -> list:
 
         fingerprints = []
         for r in (res.data or []):
-            # Extract distance and para from the stored protocol text if available
             protocol_text = r.get("protocol", "")
             distance = ""
             para = ""
@@ -103,7 +96,6 @@ def load_recent_fingerprints(limit: int = 15) -> list:
                     distance = line.split(":", 1)[-1].strip()
                 if line.lower().startswith("paragraph structure:"):
                     para = line.split(":", 1)[-1].strip()
-
             fingerprints.append({
                 "anchor": r.get("anchor", ""),
                 "pov": r.get("pov", ""),
@@ -116,19 +108,30 @@ def load_recent_fingerprints(limit: int = 15) -> list:
     except Exception:
         return []
 
+
+def load_channel() -> dict:
+    try:
+        db = _client()
+        if not db:
+            return {}
+        res = db.table("channel_settings").select("*").limit(1).execute()
+        if res.data:
+            return res.data[0]
+        return {}
+    except Exception:
+        return {}
+
+
+def save_channel(channel_id: str, channel_url: str, channel_name: str):
     try:
         db = _client()
         if not db:
             return
-        db.table("scripts").insert({
-            "script_num": script_record["id"],
-            "protocol": script_record.get("protocol", ""),
-            "script_text": script_record.get("script", ""),
-            "anchor": script_record.get("anchor", ""),
-            "pov": script_record.get("pov", ""),
-            "constraint_rule": script_record.get("constraint", ""),
-            "word_target": script_record.get("word_target", ""),
-            "tone": script_record.get("tone", ""),
+        db.table("channel_settings").upsert({
+            "id": 1,
+            "channel_id": channel_id,
+            "channel_url": channel_url,
+            "channel_name": channel_name,
         }).execute()
     except Exception as e:
-        st.error(f"Failed to save script: {e}")
+        st.error(f"Failed to save channel: {e}")
