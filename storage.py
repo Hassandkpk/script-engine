@@ -76,3 +76,59 @@ def save_script(script_record: dict):
         }).execute()
     except Exception as e:
         st.error(f"Failed to save script: {e}")
+
+
+def load_recent_fingerprints(limit: int = 15) -> list:
+    """
+    Pull structural fingerprints from the last N scripts.
+    Returns a list of dicts with anchor, pov, distance, para, constraint, tone.
+    Used to prevent the protocol generator repeating structural choices.
+    """
+    try:
+        db = _client()
+        if not db:
+            return []
+        res = db.table("scripts").select(
+            "anchor, pov, constraint_rule, word_target, tone, protocol, created_at"
+        ).order("created_at", desc=True).limit(limit).execute()
+
+        fingerprints = []
+        for r in (res.data or []):
+            # Extract distance and para from the stored protocol text if available
+            protocol_text = r.get("protocol", "")
+            distance = ""
+            para = ""
+            for line in protocol_text.splitlines():
+                if line.lower().startswith("narrative distance:"):
+                    distance = line.split(":", 1)[-1].strip()
+                if line.lower().startswith("paragraph structure:"):
+                    para = line.split(":", 1)[-1].strip()
+
+            fingerprints.append({
+                "anchor": r.get("anchor", ""),
+                "pov": r.get("pov", ""),
+                "distance": distance,
+                "para": para,
+                "constraint": r.get("constraint_rule", ""),
+                "tone": r.get("tone", ""),
+            })
+        return fingerprints
+    except Exception:
+        return []
+
+    try:
+        db = _client()
+        if not db:
+            return
+        db.table("scripts").insert({
+            "script_num": script_record["id"],
+            "protocol": script_record.get("protocol", ""),
+            "script_text": script_record.get("script", ""),
+            "anchor": script_record.get("anchor", ""),
+            "pov": script_record.get("pov", ""),
+            "constraint_rule": script_record.get("constraint", ""),
+            "word_target": script_record.get("word_target", ""),
+            "tone": script_record.get("tone", ""),
+        }).execute()
+    except Exception as e:
+        st.error(f"Failed to save script: {e}")
