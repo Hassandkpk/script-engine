@@ -389,15 +389,21 @@ Return only the JSON object."""
 
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=2000,
+        max_tokens=4000,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
     raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+
+    # Find JSON boundaries robustly — model sometimes adds text before/after
     try:
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        raw = raw[start:end]
         return json.loads(raw)
-    except Exception:
-        return {"intro": "Outline generation failed.", "sections": [], "conclusion": ""}
+    except Exception as e:
+        # Return raw text in intro so we can see what went wrong
+        return {"intro": f"Parse error: {str(e)} | Raw: {raw[:300]}", "sections": [], "conclusion": ""}
 
 
 def check_outline_uniqueness(title: str, outline: dict, past_scripts: list, api_key: str) -> dict:
