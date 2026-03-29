@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 from data import ANCHORS, ANGLES, POVS, DISTANCES, PARAS, CONSTRAINTS, DEFAULT_BANS
-from storage import load_data, save_banned, save_script
+from storage import load_data, save_banned, save_script, load_recent_fingerprints
 from generator import generate_script, generate_titles, generate_protocol_from_title, build_protocol_text, generate_section
 from exporter import export_pdf, export_docx
 
@@ -354,8 +354,10 @@ if page == "Quick Generate":
             banned = data.get("banned", [])
 
             with st.spinner("Building protocol from title..."):
+                fingerprints = load_recent_fingerprints(15)
                 protocol = generate_protocol_from_title(
-                    title_input.strip(), banned, st.session_state.api_key
+                    title_input.strip(), banned, st.session_state.api_key,
+                    recent_fingerprints=fingerprints
                 )
                 st.session_state.simple_protocol = protocol
                 st.session_state.simple_title = title_input.strip()
@@ -452,8 +454,10 @@ elif page == "Divergence Protocol":
         else:
             banned = data.get("banned", [])
             with st.spinner("Analysing title and building suggestions..."):
+                fingerprints = load_recent_fingerprints(15)
                 suggested = generate_protocol_from_title(
-                    full_title.strip(), banned, st.session_state.api_key
+                    full_title.strip(), banned, st.session_state.api_key,
+                    recent_fingerprints=fingerprints
                 )
                 st.session_state.full_suggested = suggested
                 st.session_state.full_anchor = suggested.get("anchor", "")
