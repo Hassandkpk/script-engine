@@ -150,8 +150,37 @@ def generate_section(protocol: str, title: str, section_num: int,
     return filtered
 
 
-def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict:
+def generate_protocol_from_title(title: str, banned: list, api_key: str,
+                                  recent_fingerprints: list = None) -> dict:
     banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
+
+    # Build structural history block from recent scripts
+    history_text = ""
+    if recent_fingerprints:
+        history_lines = []
+        for i, fp in enumerate(recent_fingerprints):
+            parts = []
+            if fp.get("anchor"):
+                parts.append(f"anchor: {fp['anchor'][:80]}")
+            if fp.get("pov"):
+                parts.append(f"POV: {fp['pov']}")
+            if fp.get("distance"):
+                parts.append(f"distance: {fp['distance']}")
+            if fp.get("para"):
+                parts.append(f"para: {fp['para']}")
+            if fp.get("constraint"):
+                parts.append(f"constraint: {fp['constraint'][:60]}")
+            if fp.get("tone"):
+                parts.append(f"tone: {fp['tone']}")
+            if parts:
+                history_lines.append(f"Script {i+1}: {' | '.join(parts)}")
+        if history_lines:
+            history_text = (
+                "STRUCTURAL HISTORY — last scripts already produced "
+                "(do not repeat any anchor domain, POV, distance, paragraph structure, or constraint from this list):\n"
+                + "\n".join(history_lines)
+                + "\n\n"
+            )
 
     system = (
         "You are an expert cosmic horror YouTube script architect.\n"
@@ -164,30 +193,34 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict
         "Before choosing any anchor, ask yourself this test:\n"
         "'Can someone who has never studied this topic feel dread from this anchor within the first paragraph\n"
         "— without needing any explanation first?'\n\n"
-        "If the answer is NO — if the anchor requires prior knowledge, academic context, or multiple steps\n"
-        "of reasoning before it produces any feeling — REJECT it and find a different anchor.\n\n"
+        "If the answer is NO — REJECT it and find a different anchor.\n\n"
         "GOOD anchors pass the visceral test immediately:\n"
-        "- Sleep paralysis research (30% of people have experienced it — zero explanation needed)\n"
+        "- Sleep paralysis research (30% of people have experienced it)\n"
         "- Deep ocean pressure data (steel-crushing depths, things that have never seen light)\n"
-        "- Brain's response to incomprehensible stimuli (the prefrontal cortex shuts down — personally biological)\n"
+        "- Brain's response to incomprehensible stimuli (the prefrontal cortex shuts down)\n"
         "- Infrasound frequencies that trigger dread in mammals (below hearing, felt in the chest)\n"
         "- Historical population disappearances (entire communities, no remains, no explanation)\n"
         "- Documented cases of people who saw something and refused to describe it\n"
-        "- Biological anomalies in deep-sea creatures (morphologies that violate expected evolutionary logic)\n"
+        "- Biological anomalies in deep-sea creatures (morphologies that violate evolutionary logic)\n"
         "- Real archaeological finds with no civilization that could have made them\n\n"
         "BAD anchors fail the visceral test:\n"
-        "- Organizational theory or management science formulas\n"
+        "- Organizational theory or management science\n"
         "- Abstract mathematical proofs\n"
         "- Literary theory or philosophical frameworks\n"
-        "- Economic or political systems\n"
-        "- Anything requiring the listener to first understand a technical field before feeling anything\n\n"
-        "The anchor must connect to REAL verifiable data AND produce immediate gut-level unease\n"
-        "in someone with no prior knowledge of the domain. Both conditions must be satisfied."
+        "- Anything requiring technical knowledge before feeling anything\n\n"
+        "CRITICAL — STRUCTURAL ROTATION RULE:\n"
+        "You will be given a structural history of recent scripts. "
+        "You must choose a POV, narrative distance, paragraph structure, and constraint "
+        "that have NOT been used in recent scripts. "
+        "Rotate deliberately — if the last script used 'forensic distance', pick something else. "
+        "If the last script used 'second person', pick a different POV. "
+        "The goal is that no two consecutive scripts feel structurally similar."
     )
 
     user = (
         f'Video title: "{title}"\n\n'
-        f"Banned structural moves already used in previous scripts (do not repeat any):\n"
+        f"{history_text}"
+        f"Banned structural moves (manual log — never repeat these):\n"
         f"{banned_text}\n\n"
         f"Generate a divergence protocol for this title. Return a JSON object with exactly these fields:\n\n"
         f'{{\n'
@@ -196,13 +229,13 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict
         f'  "pov": "One of: second person, first person plural (we), third person omniscient restrained, false documentary (field notes), nested narration, no narrator (pure phenomena), first person singular dissolving into report, second person plural",\n'
         f'  "distance": "One of: maximum intimacy, forensic distance, historical distance, dissolving distance (starts far collapses close), unreliable proximity, absolute removal",\n'
         f'  "para": "One of: paragraphs compress as script progresses, alternating long/short rhythm, single unbroken block, each paragraph shorter than previous, fragments only, normal prose fragmenting in final third, paragraphs expand as script progresses, two sentences per paragraph maximum",\n'
-        f'  "constraint": "One specific hard constraint that bans a particular writing device or forces an unusual structural rule",\n'
-        f'  "reasoning": "One sentence explaining why this anchor passes the visceral test for a non-expert listener"\n'
+        f'  "constraint": "One specific hard constraint — must not repeat any constraint from structural history above",\n'
+        f'  "reasoning": "One sentence explaining why this anchor passes the visceral test AND why these structural choices differ from recent scripts"\n'
         f'}}\n\n'
         f"Rules:\n"
         f"- Anchor MUST pass the visceral test — immediate felt dread, no explanation required\n"
-        f"- Anchor must connect to REAL verifiable data\n"
-        f"- Do not choose any anchor, POV, or constraint that matches the banned moves list\n"
+        f"- Anchor domain must NOT repeat any domain from structural history\n"
+        f"- POV, distance, para, constraint must all differ from the most recent 3 scripts in history\n"
         f"- Return only the JSON object, nothing else"
     )
 
@@ -227,7 +260,7 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str) -> dict
             "distance": "forensic distance",
             "para": "paragraphs compress as script progresses",
             "constraint": "No sentence may exceed 15 words",
-            "reasoning": "Sleep paralysis requires zero explanation to produce immediate dread — most listeners have felt it."
+            "reasoning": "Sleep paralysis requires zero explanation to produce immediate dread."
         }
 
 
