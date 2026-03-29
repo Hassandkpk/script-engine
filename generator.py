@@ -347,3 +347,171 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
         return json.loads(raw)
     except Exception:
         return [{"style": "Generated", "titles": [raw]}]
+
+
+def generate_outline(title: str, protocol: dict, tone: str, api_key: str) -> dict:
+    """Generate a structured outline: intro summary, main body sections with bullets, conclusion summary."""
+    client = anthropic.Anthropic(api_key=api_key.strip())
+
+    system = (
+        "You are a cosmic horror YouTube script architect. "
+        "You produce outlines for long-form scripts (~12,000 words total). "
+        "Structure: 150-word intro, main body (~11,700 words across ~11 sections of ~1,000 words each), 150-word conclusion. "
+        "Output only valid JSON."
+    )
+
+    user = f"""Title: "{title}"
+
+Protocol:
+- Anchor: {protocol.get('anchor', '')}
+- Angle: {protocol.get('angle', '')}
+- POV: {protocol.get('pov', '')}
+- Distance: {protocol.get('distance', '')}
+- Structure: {protocol.get('para', '')}
+- Constraint: {protocol.get('constraint', '')}
+- Tone: {tone}
+
+Generate a detailed outline. Return JSON:
+{{
+  "intro": "2-3 sentences describing what the intro establishes and how it opens",
+  "sections": [
+    {{
+      "heading": "Section heading",
+      "bullets": ["what this section covers", "specific argument or data point", "how it connects to the horror"]
+    }}
+  ],
+  "conclusion": "2-3 sentences describing what the conclusion lands and how it closes",
+  "total_sections": 11
+}}
+
+Generate exactly 11 main body sections. Each section heading should be specific, not generic.
+Return only the JSON object."""
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2000,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {"intro": "Outline generation failed.", "sections": [], "conclusion": ""}
+
+
+def check_outline_uniqueness(title: str, outline: dict, past_scripts: list, api_key: str) -> dict:
+    """Check if the outline structure and approach is unique vs past saved scripts."""
+    client = anthropic.Anthropic(api_key=api_key.strip())
+
+    if not past_scripts:
+        return {"status": "unique", "reason": "No past scripts to compare against.", "conflicts": []}
+
+    past_summary = "\n".join([
+        f"- Script #{s.get('id','?')}: anchor={s.get('anchor','')[:60]} | pov={s.get('pov','')[:40]}"
+        for s in past_scripts[-20:]
+    ])
+
+    section_headings = "\n".join([f"- {s['heading']}" for s in outline.get("sections", [])])
+
+    system = "You are a content uniqueness analyst for a YouTube channel. Output only valid JSON."
+
+    user = f"""New script outline:
+Title: "{title}"
+Intro approach: {outline.get('intro', '')}
+Section headings:
+{section_headings}
+Conclusion: {outline.get('conclusion', '')}
+
+Past scripts (last 20):
+{past_summary}
+
+Check if this outline's structure, approach, and argument flow is genuinely different from past scripts.
+Focus on: same opening approach, same argumentative arc, same section structure, same conclusion framing.
+
+Return JSON:
+{{
+  "status": "unique" | "similar" | "duplicate",
+  "reason": "one sentence verdict",
+  "conflicts": ["description of any specific similarity found"]
+}}"""
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=400,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {"status": "unique", "reason": "Check inconclusive.", "conflicts": []}
+
+
+def generate_intro(title: str, protocol_text: str, outline: dict, tone: str, api_key: str) -> str:
+    raw = _generate_part(
+        title, protocol_text, tone, api_key,
+        instruction=f"Write ONLY the intro (exactly 150 words). Intro outline: {outline.get('intro', '')}. "
+                    "No section headings. Just the opening 150 words of the script.",
+        max_tokens=600
+    )
+    return apply_voice_filter(raw, title, api_key)
+
+
+def generate_body_section(title: str, protocol_text: str, outline: dict, section_num: int,
+                           approved_parts: list, tone: str, api_key: str) -> str:
+    sections = outline.get("sections", [])
+    if section_num <= len(sections):
+        sec = sections[section_num - 1]
+        section_brief = f"Heading: {sec['heading']}\nCover: {', '.join(sec.get('bullets', []))}"
+    else:
+        section_brief = f"Section {section_num} — continue the narrative arc toward the conclusion"
+
+    prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
+    prior_text = f"APPROVED CONTENT SO FAR (last 2 parts — maintain continuity, do not repeat):\n{prior}\n\n" if prior else ""
+
+    raw = _generate_part(
+        title, protocol_text, tone, api_key,
+        instruction=f"{prior_text}Write ONLY section {section_num} of the main body (~1,000 words).\n{section_brief}\n"
+                    "No intro recap. No conclusion. Continue naturally. Output only this section.",
+        max_tokens=2000
+    )
+    return apply_voice_filter(raw, title, api_key)
+
+
+def generate_conclusion(title: str, protocol_text: str, outline: dict,
+                         approved_parts: list, tone: str, api_key: str) -> str:
+    prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
+    prior_text = f"APPROVED FINAL BODY SECTIONS (for continuity):\n{prior}\n\n" if prior else ""
+    raw = _generate_part(
+        title, protocol_text, tone, api_key,
+        instruction=f"{prior_text}Write ONLY the conclusion (exactly 150 words). "
+                    f"Conclusion outline: {outline.get('conclusion', '')}. "
+                    "Land the horror. No new information. Close the script. Output only the conclusion.",
+        max_tokens=600
+    )
+    return apply_voice_filter(raw, title, api_key)
+
+
+def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
+                   instruction: str, max_tokens: int = 2000) -> str:
+    tone_map = {
+        "Existential — scale horror": "existential — the horror comes from scale and the smallness of the human",
+        "Forensic — clinical dread": "forensic and clinical — dread emerges from precision, not description",
+        "Intimate — personal wrongness": "intimate — the wrongness is close, specific, personal",
+        "Archival — found document": "archival — reads like a document that was not meant to be found",
+    }
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=max_tokens,
+        system=(
+            "You are a cosmic horror YouTube script writer. Follow the divergence protocol exactly. "
+            "Write for listeners, not readers. Output only the requested content — no labels, no preamble."
+        ),
+        messages=[{"role": "user", "content":
+            f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n\n{instruction}"
+        }]
+    )
+    return msg.content[0].text
