@@ -456,7 +456,9 @@ if 'td_step' not in st.session_state:
 if 'td_concept_result' not in st.session_state:
     st.session_state.td_concept_result = None
 if 'td_trending_notes' not in st.session_state:
-    st.session_state.td_trending_notes = ""             # 1=discover, 2=select+title, 3=concept check, 4=proceed
+    st.session_state.td_trending_notes = ""
+if 'page_override' not in st.session_state:
+    st.session_state.page_override = None             # 1=discover, 2=select+title, 3=concept check, 4=proceed
 if 'channel' not in st.session_state:
     st.session_state.channel = load_channel()
 if 'concept_result' not in st.session_state:
@@ -518,7 +520,13 @@ with st.sidebar:
     if st.session_state.mode == "Simple":
         page = st.radio("", ["Quick Generate", "Script History"], label_visibility="collapsed")
     else:
-        page = st.radio("", ["Topic Discovery", "Divergence Protocol", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"], label_visibility="collapsed")
+        full_pages = ["Topic Discovery", "Divergence Protocol", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"]
+        # Check for page override from buttons
+        override = st.session_state.get("page_override")
+        default_idx = full_pages.index(override) if override and override in full_pages else 0
+        if override:
+            st.session_state.page_override = None  # clear after reading
+        page = st.radio("", full_pages, index=default_idx, label_visibility="collapsed")
 
 
 def _render_audit(audit: dict):
@@ -785,9 +793,10 @@ if page == "Topic Discovery":
         title = st.session_state.td_final_title
         st.markdown(f"<div class='sp-locked-badge'>✓ Ready to build: {title}</div>", unsafe_allow_html=True)
         st.markdown("")
-        st.markdown("<div style='font-size:15px;color:#444;margin-bottom:20px;'>Topic confirmed. Go to <strong>Divergence Protocol</strong> in the sidebar to continue — your title is pre-loaded and the concept check is already passed.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:15px;color:#444;margin-bottom:20px;'>Topic confirmed. Click below to go to the script builder — your title is pre-loaded and concept check is already passed.</div>", unsafe_allow_html=True)
         if st.button("→ Go to Divergence Protocol", key="td_go_protocol"):
-            st.session_state.td_step = 4  # keep at 4 so progress shows complete
+            st.session_state.page_override = "Divergence Protocol"
+            st.rerun()
 
 
 elif page == "Quick Generate":
