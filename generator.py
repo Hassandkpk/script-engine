@@ -232,30 +232,32 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str,
         history_lines = []
         for i, fp in enumerate(recent_fingerprints):
             parts = []
-            if fp.get("anchor"): parts.append(f"anchor: {fp['anchor'][:80]}")
+            if fp.get("anchor"): parts.append(f"anchor_domain: {fp['anchor'][:50]}")
             if fp.get("pov"): parts.append(f"POV: {fp['pov']}")
             if fp.get("distance"): parts.append(f"distance: {fp['distance']}")
             if fp.get("para"): parts.append(f"para: {fp['para']}")
-            if fp.get("constraint"): parts.append(f"constraint: {fp['constraint'][:60]}")
+            if fp.get("constraint"): parts.append(f"constraint: {fp['constraint'][:40]}")
             if parts:
                 history_lines.append(f"Script {i+1}: {' | '.join(parts)}")
                 if fp.get("anchor"):
-                    used_anchors.append(fp["anchor"][:80])
+                    used_anchors.append(fp["anchor"][:50])
         if history_lines:
             history_text = (
                 "STRUCTURAL HISTORY — do not repeat any anchor domain, POV, distance, "
                 "paragraph structure, or constraint from this list:\n"
-                + "\n".join(history_lines) + "\n\n"
+                + "\n".join(history_lines[:10]) + "\n\n"  # cap at 10 most recent
             )
 
-    # Build Lovecraft anchor catalogue
+    # Build Lovecraft anchor catalogue — short version to avoid token limit
     anchor_catalogue = []
     for entity, anchors in LOVECRAFT_ANCHORS.items():
         anchor_catalogue.append(f"\n{entity}:")
         for i, a in enumerate(anchors):
             recently_used = any(a["anchor"][:60] in used for used in used_anchors)
             flag = " [RECENTLY USED — avoid]" if recently_used else ""
-            anchor_catalogue.append(f"  {i+1}. [{a['domain']}]{flag} {a['anchor'][:140]}...")
+            # Send first 80 chars only — enough to identify, not the full text
+            short = a["anchor"][:80].rstrip()
+            anchor_catalogue.append(f"  {i+1}. [{a['domain']}]{flag} {short}")
     anchor_list = "\n".join(anchor_catalogue)
 
     system = (
