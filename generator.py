@@ -223,7 +223,9 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str,
                                   recent_fingerprints: list = None) -> dict:
     from data import LOVECRAFT_ANCHORS
 
-    banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
+    # Cap banned list to avoid prompt overflow
+    banned_capped = banned[:20] if banned else []
+    banned_text = "\n".join([f"- [{b['type']}] {b['move'][:80]}" for b in banned_capped]) if banned_capped else "None yet."
 
     # Build structural history from fingerprints
     history_text = ""
@@ -297,15 +299,29 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str,
         f'}}\n\nReturn only the JSON object.'
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1200,
-        system=system,
-        messages=[{"role": "user", "content": user}]
-    )
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1200,
+            system=system,
+            messages=[{"role": "user", "content": user}]
+        )
+        raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    except Exception as e:
+        # Return fallback with error details embedded in reasoning
+        return {
+            "entity": "Cthulhu / R'lyeh / The Dreaming God",
+            "anchor": "The Bloop (1997) — NOAA hydrophones recorded an ultra-low-frequency sound rising from the deep Pacific, consistent with a living organism far larger than any known species. The source was never located. The recording is available. The explanation is not.",
+            "anchor_domain": "ocean_acoustics",
+            "angle": "The recording exists in NOAA archives. Anyone can download it. What produced it has never been identified, and no follow-up expedition has been funded.",
+            "pov": "third person omniscient restrained",
+            "distance": "forensic distance",
+            "para": "paragraphs compress as script progresses",
+            "constraint": "No sentence may exceed 15 words",
+            "reasoning": f"API ERROR — {type(e).__name__}: {str(e)[:200]}"
+        }
 
-    raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
