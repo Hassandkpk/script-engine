@@ -218,119 +218,108 @@ def generate_section(protocol: str, title: str, section_num: int,
     return filtered
 
 
+
 def generate_protocol_from_title(title: str, banned: list, api_key: str,
                                   recent_fingerprints: list = None) -> dict:
+    from data import LOVECRAFT_ANCHORS
+
     banned_text = "\n".join([f"- [{b['type']}] {b['move']}" for b in banned]) if banned else "None yet."
 
-    # Build structural history block from recent scripts
+    # Build structural history from fingerprints
     history_text = ""
+    used_anchors = []
     if recent_fingerprints:
         history_lines = []
         for i, fp in enumerate(recent_fingerprints):
             parts = []
-            if fp.get("anchor"):
-                parts.append(f"anchor: {fp['anchor'][:80]}")
-            if fp.get("pov"):
-                parts.append(f"POV: {fp['pov']}")
-            if fp.get("distance"):
-                parts.append(f"distance: {fp['distance']}")
-            if fp.get("para"):
-                parts.append(f"para: {fp['para']}")
-            if fp.get("constraint"):
-                parts.append(f"constraint: {fp['constraint'][:60]}")
-            if fp.get("tone"):
-                parts.append(f"tone: {fp['tone']}")
+            if fp.get("anchor"): parts.append(f"anchor: {fp['anchor'][:80]}")
+            if fp.get("pov"): parts.append(f"POV: {fp['pov']}")
+            if fp.get("distance"): parts.append(f"distance: {fp['distance']}")
+            if fp.get("para"): parts.append(f"para: {fp['para']}")
+            if fp.get("constraint"): parts.append(f"constraint: {fp['constraint'][:60]}")
             if parts:
                 history_lines.append(f"Script {i+1}: {' | '.join(parts)}")
+                if fp.get("anchor"):
+                    used_anchors.append(fp["anchor"][:80])
         if history_lines:
             history_text = (
-                "STRUCTURAL HISTORY — last scripts already produced "
-                "(do not repeat any anchor domain, POV, distance, paragraph structure, or constraint from this list):\n"
-                + "\n".join(history_lines)
-                + "\n\n"
+                "STRUCTURAL HISTORY — do not repeat any anchor domain, POV, distance, "
+                "paragraph structure, or constraint from this list:\n"
+                + "\n".join(history_lines) + "\n\n"
             )
 
+    # Build Lovecraft anchor catalogue
+    anchor_catalogue = []
+    for entity, anchors in LOVECRAFT_ANCHORS.items():
+        anchor_catalogue.append(f"\n{entity}:")
+        for i, a in enumerate(anchors):
+            recently_used = any(a["anchor"][:60] in used for used in used_anchors)
+            flag = " [RECENTLY USED — avoid]" if recently_used else ""
+            anchor_catalogue.append(f"  {i+1}. [{a['domain']}]{flag} {a['anchor'][:140]}...")
+    anchor_list = "\n".join(anchor_catalogue)
+
     system = (
-        "You are an expert cosmic horror YouTube script architect.\n"
-        "Given a video title, you generate a complete divergence protocol — a pre-script brief that ensures\n"
-        "the resulting script is structurally unique, grounded in real data, and avoids all AI default patterns.\n"
-        "You output only valid JSON. No preamble, no explanation.\n\n"
-        "CRITICAL — ANCHOR SELECTION RULE:\n"
-        "The audience for this channel listens at night. Many listen to sleep. They are not academics.\n"
-        "They are cosmic horror fans who want to FEEL something, not learn something.\n\n"
-        "Before choosing any anchor, ask yourself this test:\n"
-        "'Can someone who has never studied this topic feel dread from this anchor within the first paragraph\n"
-        "— without needing any explanation first?'\n\n"
-        "If the answer is NO — REJECT it and find a different anchor.\n\n"
-        "GOOD anchors pass the visceral test immediately:\n"
-        "- Sleep paralysis research (30% of people have experienced it)\n"
-        "- Deep ocean pressure data (steel-crushing depths, things that have never seen light)\n"
-        "- Brain's response to incomprehensible stimuli (the prefrontal cortex shuts down)\n"
-        "- Infrasound frequencies that trigger dread in mammals (below hearing, felt in the chest)\n"
-        "- Historical population disappearances (entire communities, no remains, no explanation)\n"
-        "- Documented cases of people who saw something and refused to describe it\n"
-        "- Biological anomalies in deep-sea creatures (morphologies that violate evolutionary logic)\n"
-        "- Real archaeological finds with no civilization that could have made them\n\n"
-        "BAD anchors fail the visceral test:\n"
-        "- Organizational theory or management science\n"
-        "- Abstract mathematical proofs\n"
-        "- Literary theory or philosophical frameworks\n"
-        "- Anything requiring technical knowledge before feeling anything\n\n"
-        "CRITICAL — STRUCTURAL ROTATION RULE:\n"
-        "You will be given a structural history of recent scripts. "
-        "You must choose a POV, narrative distance, paragraph structure, and constraint "
-        "that have NOT been used in recent scripts. "
-        "Rotate deliberately — if the last script used 'forensic distance', pick something else. "
-        "If the last script used 'second person', pick a different POV. "
-        "The goal is that no two consecutive scripts feel structurally similar."
+        "You are an expert cosmic horror YouTube script architect specialising in Lovecraftian "
+        "sleep documentary content.\n\n"
+        "You generate divergence protocols — pre-script briefs ensuring each script is structurally "
+        "unique, creatively ambitious, and grounded in real verifiable data tied to specific "
+        "Lovecraft entities or concepts.\n\n"
+        "ANCHOR RULE: Choose ONLY from the provided Lovecraft Anchor Catalogue. "
+        "Do not invent anchors. Do not use generic science domains. "
+        "Every anchor in the catalogue is real, verifiable, and viscerally dreadful — "
+        "felt immediately in the dark with no explanation. "
+        "If the title references a specific Lovecraft entity, prioritise that entity's anchors. "
+        "Avoid anchors flagged [RECENTLY USED].\n\n"
+        "STRUCTURAL ROTATION RULE: Choose POV, distance, para structure, and constraint "
+        "not appearing in recent scripts. Every script must feel structurally different "
+        "from the last three.\n\n"
+        "Output only valid JSON."
     )
 
     user = (
         f'Video title: "{title}"\n\n'
         f"{history_text}"
-        f"Banned structural moves (manual log — never repeat these):\n"
-        f"{banned_text}\n\n"
-        f"Generate a divergence protocol for this title. Return a JSON object with exactly these fields:\n\n"
+        f"Manual banned structural moves:\n{banned_text}\n\n"
+        f"LOVECRAFT ANCHOR CATALOGUE (choose from this list only):\n{anchor_list}\n\n"
+        f"Return JSON:\n"
         f'{{\n'
-        f'  "anchor": "A specific real-world data domain that passes the visceral test",\n'
-        f'  "angle": "The exact cognitive lens that makes this real data feel cosmically wrong — one sentence a non-expert immediately understands",\n'
-        f'  "pov": "One of: second person, first person plural (we), third person omniscient restrained, false documentary (field notes), nested narration, no narrator (pure phenomena), first person singular dissolving into report, second person plural",\n'
-        f'  "distance": "One of: maximum intimacy, forensic distance, historical distance, dissolving distance (starts far collapses close), unreliable proximity, absolute removal",\n'
-        f'  "para": "One of: paragraphs compress as script progresses, alternating long/short rhythm, single unbroken block, each paragraph shorter than previous, fragments only, normal prose fragmenting in final third, paragraphs expand as script progresses, two sentences per paragraph maximum",\n'
-        f'  "constraint": "One specific hard constraint — must not repeat any constraint from structural history above",\n'
-        f'  "reasoning": "One sentence explaining why this anchor passes the visceral test AND why these structural choices differ from recent scripts"\n'
-        f'}}\n\n'
-        f"Rules:\n"
-        f"- Anchor MUST pass the visceral test — immediate felt dread, no explanation required\n"
-        f"- Anchor domain must NOT repeat any domain from structural history\n"
-        f"- POV, distance, para, constraint must all differ from the most recent 3 scripts in history\n"
-        f"- Return only the JSON object, nothing else"
+        f'  "entity": "Lovecraft entity/story this script connects to",\n'
+        f'  "anchor": "Full anchor text copied exactly from the catalogue",\n'
+        f'  "anchor_domain": "Domain code from the catalogue",\n'
+        f'  "angle": "One sentence — the specific cognitive lens making this anchor feel cosmically wrong. Immediately understood by a non-expert in the dark.",\n'
+        f'  "pov": "One of: second person | first person plural (we) | third person omniscient restrained | false documentary (field notes) | nested narration | no narrator (pure phenomena) | first person singular dissolving into report | second person plural",\n'
+        f'  "distance": "One of: maximum intimacy | forensic distance | historical distance | dissolving distance | unreliable proximity | absolute removal",\n'
+        f'  "para": "One of: paragraphs compress as script progresses | alternating long/short rhythm | single unbroken block | each paragraph shorter than previous | fragments only | normal prose fragmenting in final third | paragraphs expand as script progresses | two sentences per paragraph maximum",\n'
+        f'  "constraint": "One specific hard constraint not in structural history above",\n'
+        f'  "reasoning": "One sentence why this anchor serves this title and this audience"\n'
+        f'}}\n\nReturn only the JSON object.'
     )
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1000,
+        max_tokens=1200,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
 
-    raw = message.content[0].text.strip()
-    raw = raw.replace("```json", "").replace("```", "").strip()
-
+    raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     try:
-        return json.loads(raw)
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        return json.loads(raw[start:end])
     except Exception:
         return {
-            "anchor": "Sleep paralysis research — documented cases where the brain generates a perceived malevolent presence in the room during waking paralysis",
-            "angle": "30% of people have experienced this. The presence felt real. Neuroscience confirms the brain generated it. Neither fact makes the other less disturbing.",
+            "entity": "Cthulhu / R'lyeh / The Dreaming God",
+            "anchor": "The Bloop (1997) — NOAA hydrophones recorded an ultra-low-frequency sound rising from the deep Pacific, consistent with a living organism far larger than any known species. The source was never located. The recording is available. The explanation is not.",
+            "anchor_domain": "ocean_acoustics",
+            "angle": "The recording exists in NOAA archives. Anyone can download it. What produced it has never been identified, and no follow-up expedition has been funded.",
             "pov": "third person omniscient restrained",
             "distance": "forensic distance",
             "para": "paragraphs compress as script progresses",
             "constraint": "No sentence may exceed 15 words",
-            "reasoning": "Sleep paralysis requires zero explanation to produce immediate dread."
+            "reasoning": "The Bloop is the most documented unidentified ocean sound — real, downloadable, and immediately dreadful."
         }
-
 
 def build_protocol_text(title: str, script_num: int, protocol: dict, banned: list) -> str:
     lines = [
