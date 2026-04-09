@@ -518,15 +518,14 @@ with st.sidebar:
     st.markdown("---")
 
     if st.session_state.mode == "Simple":
-        page = st.radio("", ["Quick Generate", "Script History"], label_visibility="collapsed")
+        page = st.radio("", ["Quick Generate", "Script History"], label_visibility="collapsed", key="nav_radio_simple")
     else:
         full_pages = ["Topic Discovery", "Divergence Protocol", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"]
-        # Check for page override from buttons
         override = st.session_state.get("page_override")
-        default_idx = full_pages.index(override) if override and override in full_pages else 0
-        if override:
-            st.session_state.page_override = None  # clear after reading
-        page = st.radio("", full_pages, index=default_idx, label_visibility="collapsed")
+        if override and override in full_pages:
+            st.session_state.nav_radio_full = override
+            st.session_state.page_override = None
+        page = st.radio("", full_pages, label_visibility="collapsed", key="nav_radio_full")
 
 
 def _render_audit(audit: dict):
