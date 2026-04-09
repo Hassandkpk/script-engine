@@ -17,7 +17,8 @@ from storage import load_data, save_banned, save_script, load_recent_fingerprint
 from generator import (generate_script, generate_titles, generate_protocol_from_title,
                        build_protocol_text, generate_section, generate_outline,
                        check_outline_uniqueness, generate_intro, generate_body_section,
-                       generate_conclusion, audit_section)
+                       generate_conclusion, audit_section, discover_topics,
+                       generate_title_formats)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -440,6 +441,22 @@ if 'pro_audit_result' not in st.session_state:
     st.session_state.pro_audit_result = None
 if 'pro_intro_audit' not in st.session_state:
     st.session_state.pro_intro_audit = None
+
+# Topic Discovery state
+if 'td_topics' not in st.session_state:
+    st.session_state.td_topics = []          # list of generated topic dicts
+if 'td_selected_topic' not in st.session_state:
+    st.session_state.td_selected_topic = None
+if 'td_title_options' not in st.session_state:
+    st.session_state.td_title_options = []   # title format variations
+if 'td_final_title' not in st.session_state:
+    st.session_state.td_final_title = ""
+if 'td_step' not in st.session_state:
+    st.session_state.td_step = 1
+if 'td_concept_result' not in st.session_state:
+    st.session_state.td_concept_result = None
+if 'td_trending_notes' not in st.session_state:
+    st.session_state.td_trending_notes = ""             # 1=discover, 2=select+title, 3=concept check, 4=proceed
 if 'channel' not in st.session_state:
     st.session_state.channel = load_channel()
 if 'concept_result' not in st.session_state:
@@ -501,7 +518,7 @@ with st.sidebar:
     if st.session_state.mode == "Simple":
         page = st.radio("", ["Quick Generate", "Script History"], label_visibility="collapsed")
     else:
-        page = st.radio("", ["Divergence Protocol", "Script Generator", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"], label_visibility="collapsed")
+        page = st.radio("", ["Topic Discovery", "Divergence Protocol", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"], label_visibility="collapsed")
 
 
 def _render_audit(audit: dict):
@@ -546,7 +563,234 @@ def _render_audit(audit: dict):
 
 
 
-if page == "Quick Generate":
+if page == "Topic Discovery":
+    st.markdown("<div class='sp-hero-label'>Step 0 — Start here</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-title'>Topic Discovery</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-sub'>Specter researches what's trending in cosmic horror right now, checks your channel, and suggests original topics you haven't covered.</div>", unsafe_allow_html=True)
+    st.markdown("")
+
+    if not st.session_state.api_key:
+        st.warning("Add your Anthropic API key in the sidebar.")
+
+    # Step progress
+    td_steps = ["Discover", "Select & Title", "Concept Check", "Proceed"]
+    td_current = st.session_state.td_step
+    cols = st.columns(4)
+    for i, (col, label) in enumerate(zip(cols, td_steps)):
+        sn = i + 1
+        if sn < td_current:
+            col.markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:#16a34a;padding:8px 0'>✓ {label}</div>", unsafe_allow_html=True)
+        elif sn == td_current:
+            col.markdown(f"<div style='text-align:center;font-size:15px;font-weight:700;color:#7c3aed;border-bottom:3px solid #7c3aed;padding-bottom:8px'>{label}</div>", unsafe_allow_html=True)
+        else:
+            col.markdown(f"<div style='text-align:center;font-size:15px;color:#ccc;padding:8px 0'>{label}</div>", unsafe_allow_html=True)
+
+    st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+
+    # Reset
+    if st.session_state.td_step > 1:
+        if st.button("↺ Start topic discovery over", key="td_reset"):
+            for k in ['td_topics','td_selected_topic','td_title_options','td_final_title','td_step']:
+                if k in st.session_state: del st.session_state[k]
+            st.rerun()
+
+    # =========================================================
+    # STEP 1 — DISCOVER
+    # =========================================================
+    if st.session_state.td_step == 1:
+        st.markdown("<div class='sp-section-label'>Step 1 — Research and discover</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:15px;color:#777;margin-bottom:16px;'>Specter will search YouTube right now to see what's trending in cosmic horror, then generate 12 original topic ideas your channel hasn't covered.</div>", unsafe_allow_html=True)
+
+        if not st.session_state.td_topics:
+            if st.button("🔍 Research and generate topics →", key="td_discover_btn"):
+                existing = [s.get("anchor","") for s in data.get("scripts",[])]
+                with st.spinner("Searching YouTube for trending cosmic horror content... this takes 20-30 seconds"):
+                    try:
+                        result = discover_topics(st.session_state.api_key, existing_titles=existing)
+                        st.session_state.td_topics = result.get("topics", [])
+                        st.session_state.td_trending_notes = result.get("trending_notes", "")
+                    except Exception as e:
+                        st.error(f"Discovery failed: {e}")
+                st.rerun()
+        else:
+            # Show trending notes
+            if st.session_state.get("td_trending_notes"):
+                st.markdown(f"<div class='sp-reason'>📊 Trending now: {st.session_state.td_trending_notes}</div>", unsafe_allow_html=True)
+
+            st.markdown(f"<div class='sp-section-label'>{len(st.session_state.td_topics)} topic ideas generated — select one</div>", unsafe_allow_html=True)
+
+            for i, topic in enumerate(st.session_state.td_topics):
+                depth = "⭐" * topic.get("depth_rating", 3)
+                sleep_color = {"high": "#16a34a", "medium": "#b45309", "low": "#b91c1c"}.get(topic.get("sleep_fit","medium"), "#888")
+                sleep_label = topic.get("sleep_fit", "medium").upper()
+
+                with st.expander(f"{i+1}. {topic.get('title_seed','')}"):
+                    col1, col2 = st.columns([3,1])
+                    with col1:
+                        st.markdown(f"<div style='font-size:14px;color:#444;margin-bottom:8px'><strong>Entity:</strong> {topic.get('entity','')}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:14px;color:#444;margin-bottom:8px'><strong>Core argument:</strong> {topic.get('core_argument','')}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:14px;color:#666'><strong>Why now:</strong> {topic.get('why_now','')}</div>", unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f"<div style='text-align:center'><div style='font-size:16px'>{depth}</div><div style='font-size:12px;color:#999;margin-top:4px'>Depth</div></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:center;margin-top:8px'><span style='font-size:12px;font-weight:600;color:{sleep_color}'>{sleep_label}</span><div style='font-size:12px;color:#999'>Sleep fit</div></div>", unsafe_allow_html=True)
+
+                    if st.button(f"Select this topic →", key=f"td_select_{i}"):
+                        st.session_state.td_selected_topic = topic
+                        st.session_state.td_step = 2
+                        st.rerun()
+
+            st.markdown("")
+            if st.button("↻ Generate 12 different topics", key="td_regen"):
+                st.session_state.td_topics = []
+                st.session_state.td_trending_notes = ""
+                st.rerun()
+
+    # =========================================================
+    # STEP 2 — SELECT TITLE FORMAT
+    # =========================================================
+    elif st.session_state.td_step == 2:
+        topic = st.session_state.td_selected_topic
+        st.markdown(f"<div class='sp-locked-badge'>✓ Topic selected: {topic.get('title_seed','')}</div>", unsafe_allow_html=True)
+        st.markdown("")
+        st.markdown("<div class='sp-section-label'>Step 2 — Choose a title format</div>", unsafe_allow_html=True)
+
+        if not st.session_state.td_title_options:
+            with st.spinner("Generating title variations..."):
+                try:
+                    options = generate_title_formats(topic, st.session_state.api_key)
+                    st.session_state.td_title_options = options
+                except Exception as e:
+                    st.error(f"Title generation failed: {e}")
+            st.rerun()
+        else:
+            options = st.session_state.td_title_options
+            for group in options:
+                st.markdown(f"<div style='font-size:12px;font-weight:600;color:#999;letter-spacing:0.08em;text-transform:uppercase;margin:14px 0 8px'>{group.get('format','')}</div>", unsafe_allow_html=True)
+                for title in group.get("titles", []):
+                    col1, col2 = st.columns([5,1])
+                    with col1:
+                        st.markdown(f"<div style='background:#fff;border:1.5px solid #f0f0f0;border-radius:12px;padding:12px 16px;font-size:15px;color:#111'>{title}</div>", unsafe_allow_html=True)
+                    with col2:
+                        if st.button("Select", key=f"td_title_{title[:20]}"):
+                            st.session_state.td_final_title = title
+                            st.session_state.td_step = 3
+                            st.rerun()
+
+            st.markdown("")
+            # Custom title option
+            st.markdown("<div class='sp-section-label'>Or write your own title</div>", unsafe_allow_html=True)
+            custom_title = st.text_input("Custom title", placeholder="Write your own refined title...", label_visibility="collapsed", key="td_custom_title")
+            if st.button("Use this title →", key="td_use_custom"):
+                if custom_title.strip():
+                    st.session_state.td_final_title = custom_title.strip()
+                    st.session_state.td_step = 3
+                    st.rerun()
+                else:
+                    st.error("Enter a title first.")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("↻ Generate different title formats", key="td_regen_titles"):
+                    st.session_state.td_title_options = []
+                    st.rerun()
+            with col2:
+                if st.button("← Change topic", key="td_change_topic"):
+                    st.session_state.td_selected_topic = None
+                    st.session_state.td_title_options = []
+                    st.session_state.td_step = 1
+                    st.rerun()
+
+    # =========================================================
+    # STEP 3 — CONCEPT CHECK
+    # =========================================================
+    elif st.session_state.td_step == 3:
+        topic = st.session_state.td_selected_topic
+        title = st.session_state.td_final_title
+
+        st.markdown(f"<div class='sp-locked-badge'>✓ Title: {title}</div>", unsafe_allow_html=True)
+        st.markdown("")
+        st.markdown("<div class='sp-section-label'>Step 3 — Concept check against your channel</div>", unsafe_allow_html=True)
+
+        yt_key = get_youtube_api_key()
+        if not st.session_state.channel.get("channel_id") or not yt_key:
+            st.info("No channel linked — skipping concept check. Go to Channel Settings to link your YouTube channel.")
+            if st.button("Proceed to script building →", key="td_skip_check"):
+                st.session_state.td_step = 4
+                # Pre-fill pro mode title
+                st.session_state.pro_title = title
+                st.session_state.pro_step = 1
+                st.session_state.pro_concept_result = {"status": "green", "reason": "Check skipped — no channel linked.", "matches": []}
+                st.session_state.pro_step = 2
+                st.rerun()
+        else:
+            if not st.session_state.get("td_concept_result"):
+                with st.spinner(f"Checking against {st.session_state.channel.get('channel_name','your channel')}..."):
+                    try:
+                        videos = get_channel_videos(st.session_state.channel["channel_id"], yt_key)
+                        result = check_concept(title, videos, st.session_state.api_key)
+                        st.session_state.td_concept_result = result
+                    except Exception as e:
+                        st.warning(f"Concept check failed: {e}")
+                        st.session_state.td_concept_result = {"status": "green", "reason": "Check skipped.", "matches": []}
+                st.rerun()
+            else:
+                r = st.session_state.td_concept_result
+                colors = {
+                    "green": ("#f0fdf4","#bbf7d0","#16a34a","✓ New concept — not on your channel"),
+                    "yellow": ("#fffbeb","#fde68a","#b45309","⚠ Adjacent — different enough to proceed"),
+                    "red": ("#fef2f2","#fecaca","#b91c1c","✕ Already covered — start over")
+                }
+                bg, border, tc, label = colors.get(r.get("status","green"), colors["green"])
+                st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:14px;padding:16px 18px;margin-bottom:16px'><div style='font-size:15px;font-weight:600;color:{tc};margin-bottom:6px'>{label}</div><div style='font-size:15px;color:{tc}'>{r.get('reason','')}</div></div>", unsafe_allow_html=True)
+
+                if r.get("matches"):
+                    st.markdown("**Overlapping videos:**")
+                    for m in r["matches"][:3]:
+                        st.markdown(f"- `{m}`")
+
+                if r.get("status") == "red":
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("← Pick a different topic", key="td_red_topic"):
+                            for k in ['td_selected_topic','td_title_options','td_final_title','td_concept_result']:
+                                if k in st.session_state: del st.session_state[k]
+                            st.session_state.td_step = 1
+                            st.rerun()
+                    with col2:
+                        if st.button("← Try a different title format", key="td_red_title"):
+                            for k in ['td_title_options','td_final_title','td_concept_result']:
+                                if k in st.session_state: del st.session_state[k]
+                            st.session_state.td_step = 2
+                            st.rerun()
+                else:
+                    if st.button("✓ Confirmed — build script →", key="td_proceed"):
+                        st.session_state.td_step = 4
+                        # Pre-fill Pro Mode with this title
+                        st.session_state.pro_title = title
+                        st.session_state.pro_concept_result = r
+                        st.session_state.pro_step = 2
+                        # Reset any old pro mode state
+                        for k in ['pro_protocol','pro_protocol_text','pro_outline',
+                                  'pro_outline_approved','pro_uniqueness','pro_intro_text',
+                                  'pro_intro_approved','pro_body_sections','pro_body_pending',
+                                  'pro_body_section_num','pro_conclusion_text',
+                                  'pro_conclusion_approved','pro_assembled']:
+                            if k in st.session_state: del st.session_state[k]
+                        st.rerun()
+
+    # =========================================================
+    # STEP 4 — PROCEED TO SCRIPT BUILDER
+    # =========================================================
+    elif st.session_state.td_step == 4:
+        title = st.session_state.td_final_title
+        st.markdown(f"<div class='sp-locked-badge'>✓ Ready to build: {title}</div>", unsafe_allow_html=True)
+        st.markdown("")
+        st.markdown("<div style='font-size:15px;color:#444;margin-bottom:20px;'>Topic confirmed. Go to <strong>Divergence Protocol</strong> in the sidebar to continue — your title is pre-loaded and the concept check is already passed.</div>", unsafe_allow_html=True)
+        if st.button("→ Go to Divergence Protocol", key="td_go_protocol"):
+            st.session_state.td_step = 4  # keep at 4 so progress shows complete
+
+
+elif page == "Quick Generate":
     st.markdown("<div class='sp-hero-label'>Simple mode — team view</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-title'>What's the next script?</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-sub'>Paste a title. Specter builds the protocol and writes the script automatically.</div>", unsafe_allow_html=True)
@@ -839,7 +1083,45 @@ if page == "Divergence Protocol":
                         st.rerun()
         else:
             p = st.session_state.pro_protocol
-            st.markdown(f"<div class='sp-locked-badge'>✓ Protocol locked — anchor: {p.get('anchor','')[:60]}...</div>", unsafe_allow_html=True)
+
+            # Show as editable fields even when locked — each field independently saveable
+            st.markdown("<div style='font-size:13px;color:#aaa;margin-bottom:12px'>Protocol locked. Edit any field and click Update to change it.</div>", unsafe_allow_html=True)
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#7c3aed'></div><div class='sp-card-label'>Reality anchor</div></div>", unsafe_allow_html=True)
+                edit_anchor = st.text_area("anchor_locked", value=p.get("anchor",""), height=90, label_visibility="collapsed", key="pro_locked_anchor")
+                st.markdown("<div class='sp-card-top' style='margin-top:10px'><div class='sp-dot' style='background:#2563eb'></div><div class='sp-card-label'>Entry angle</div></div>", unsafe_allow_html=True)
+                edit_angle = st.text_area("angle_locked", value=p.get("angle",""), height=90, label_visibility="collapsed", key="pro_locked_angle")
+                st.markdown("<div class='sp-card-top' style='margin-top:10px'><div class='sp-dot' style='background:#d97706'></div><div class='sp-card-label'>Hard constraint</div></div>", unsafe_allow_html=True)
+                edit_constraint = st.text_area("constraint_locked", value=p.get("constraint",""), height=70, label_visibility="collapsed", key="pro_locked_constraint")
+            with col2:
+                st.markdown("<div class='sp-card-top'><div class='sp-dot' style='background:#0891b2'></div><div class='sp-card-label'>Point of view</div></div>", unsafe_allow_html=True)
+                edit_pov = st.text_area("pov_locked", value=p.get("pov",""), height=70, label_visibility="collapsed", key="pro_locked_pov")
+                st.markdown("<div class='sp-card-top' style='margin-top:10px'><div class='sp-dot' style='background:#059669'></div><div class='sp-card-label'>Narrative distance</div></div>", unsafe_allow_html=True)
+                edit_distance = st.text_area("distance_locked", value=p.get("distance",""), height=70, label_visibility="collapsed", key="pro_locked_distance")
+                st.markdown("<div class='sp-card-top' style='margin-top:10px'><div class='sp-dot' style='background:#db2777'></div><div class='sp-card-label'>Paragraph structure</div></div>", unsafe_allow_html=True)
+                edit_para = st.text_area("para_locked", value=p.get("para",""), height=70, label_visibility="collapsed", key="pro_locked_para")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("↺ Update protocol", key="pro_update_locked"):
+                    st.session_state.pro_protocol = {
+                        "anchor": edit_anchor, "angle": edit_angle, "pov": edit_pov,
+                        "distance": edit_distance, "para": edit_para, "constraint": edit_constraint,
+                        "reasoning": p.get("reasoning","")
+                    }
+                    st.session_state.pro_protocol_text = build_protocol_text(
+                        st.session_state.pro_title, script_num,
+                        st.session_state.pro_protocol, data.get("banned",[])
+                    )
+                    st.success("Protocol updated.")
+                    st.rerun()
+            with col2:
+                if st.button("↻ Regenerate entire protocol", key="pro_full_regen_locked"):
+                    st.session_state.pro_protocol = {}
+                    st.session_state.pro_step = 2
+                    st.rerun()
 
     # =====================================================================
     # STEP 3 — LENGTH & TONE
