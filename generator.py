@@ -302,7 +302,7 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str,
     try:
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1200,
             system=system,
             messages=[{"role": "user", "content": user}]
@@ -409,7 +409,7 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=2000,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -463,7 +463,7 @@ Generate exactly 11 main body sections. Each section heading should be specific,
 Return only the JSON object."""
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=4000,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -518,7 +518,7 @@ Return JSON:
 }}"""
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=400,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -660,7 +660,7 @@ Return JSON:
 Return only the JSON object."""
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=800,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -736,7 +736,7 @@ def discover_topics(api_key: str, existing_titles: list = None) -> dict:
     )
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=3000,
         system=system,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
@@ -804,7 +804,7 @@ def generate_title_formats(topic: dict, api_key: str) -> list:
     )
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=1000,
         system=system,
         messages=[{"role": "user", "content": user}]
