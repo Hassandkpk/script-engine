@@ -466,7 +466,7 @@ if 'concept_result' not in st.session_state:
 if 'api_key' not in st.session_state:
     # Try to load from Streamlit secrets (works on Streamlit Cloud and locally via .streamlit/secrets.toml)
     try:
-        st.session_state.api_key = st.secrets["ANTHROPIC_API_KEY"]
+        st.session_state.api_key = st.secrets["OPENAI_API_KEY"]
     except Exception:
         st.session_state.api_key = ""
 
@@ -479,7 +479,7 @@ with st.sidebar:
     st.markdown("---")
 
     try:
-        _from_secrets = bool(st.secrets.get("ANTHROPIC_API_KEY"))
+        _from_secrets = bool(st.secrets.get("OPENAI_API_KEY"))
     except Exception:
         _from_secrets = False
 
