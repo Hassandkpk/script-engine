@@ -20,6 +20,7 @@ from generator import (generate_script, generate_titles, generate_protocol_from_
                        generate_conclusion, audit_section, get_trending_topics,
                        generate_original_idea, generate_title_formats)
 from exporter import export_pdf, export_docx
+from data import get_entity_context
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
 st.markdown("""
@@ -437,6 +438,10 @@ if 'pro_conclusion_approved' not in st.session_state:
     st.session_state.pro_conclusion_approved = False
 if 'pro_assembled' not in st.session_state:
     st.session_state.pro_assembled = ""
+if 'pro_entity' not in st.session_state:
+    st.session_state.pro_entity = ""
+if 'pro_entity_ctx' not in st.session_state:
+    st.session_state.pro_entity_ctx = {}
 if 'pro_audit_result' not in st.session_state:
     st.session_state.pro_audit_result = None
 if 'pro_intro_audit' not in st.session_state:
@@ -1200,6 +1205,10 @@ if page == "Divergence Protocol":
         if st.session_state.pro_step == 4:
             if not st.session_state.pro_outline:
                 with st.spinner("Generating outline..."):
+                    _entity = st.session_state.pro_protocol.get("entity", "")
+                    _entity_ctx = get_entity_context(_entity)
+                    st.session_state.pro_entity = _entity
+                    st.session_state.pro_entity_ctx = _entity_ctx
                     outline = generate_outline(
                         st.session_state.pro_title, st.session_state.pro_protocol,
                         st.session_state.pro_tone, st.session_state.api_key
@@ -1317,7 +1326,9 @@ if page == "Divergence Protocol":
         if not st.session_state.pro_intro_approved:
             if not st.session_state.pro_intro_text:
                 with st.spinner("Writing intro..."):
-                    intro = generate_intro(title, protocol_text, outline, tone, st.session_state.api_key)
+                    intro = generate_intro(title, protocol_text, outline, tone, st.session_state.api_key,
+                                    entity=st.session_state.get("pro_entity",""),
+                                    entity_ctx=st.session_state.get("pro_entity_ctx",{}))
                     st.session_state.pro_intro_text = intro
                     st.session_state.pro_intro_audit = None
                 st.rerun()
@@ -1388,7 +1399,9 @@ if page == "Divergence Protocol":
                             with st.spinner(f"Writing section {sec_num}..."):
                                 body_sec = generate_body_section(
                                     title, protocol_text, outline, sec_num,
-                                    all_approved, tone, st.session_state.api_key
+                                    all_approved, tone, st.session_state.api_key,
+                                    entity=st.session_state.get("pro_entity",""),
+                                    entity_ctx=st.session_state.get("pro_entity_ctx",{})
                                 )
                                 st.session_state.pro_body_pending = body_sec
                                 st.session_state.pro_audit_result = None
@@ -1443,7 +1456,9 @@ if page == "Divergence Protocol":
                             with st.spinner("Writing conclusion..."):
                                 conclusion = generate_conclusion(
                                     title, protocol_text, outline,
-                                    all_approved, tone, st.session_state.api_key
+                                    all_approved, tone, st.session_state.api_key,
+                                    entity=st.session_state.get("pro_entity",""),
+                                    entity_ctx=st.session_state.get("pro_entity_ctx",{})
                                 )
                                 st.session_state.pro_conclusion_text = conclusion
                             st.rerun()
