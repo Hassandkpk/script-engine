@@ -659,58 +659,97 @@ Return only the JSON object."""
                 "rhythm_flags": [], "outline_flags": [], "redundancy_flags": [], "paragraph_openers": []}
 
 
-def discover_topics(api_key: str, existing_titles: list = None) -> dict:
+def get_trending_topics(api_key: str) -> list:
     """
-    Generates fresh cosmic horror topic ideas using Claude's knowledge.
-    Fast — no web search, instant response.
+    Returns a list of currently popular/trending cosmic horror YouTube topics.
+    These are real topics that are working in the niche right now — not original ideas.
+    Fast — uses Haiku, no web search.
+    """
+    client = anthropic.Anthropic(api_key=api_key.strip())
+
+    system = (
+        "You are a cosmic horror YouTube analyst. "
+        "You know exactly what topics are currently popular and trending in the cosmic horror niche on YouTube. "
+        "Output only valid JSON."
+    )
+
+    user = (
+        "List 15 specific cosmic horror YouTube topics that are currently popular and getting views. "
+        "These should be real topics that channels are covering right now — entities, phenomena, stories, concepts. "
+        "Not original ideas — just what's trending in the niche.\n\n"
+        "Return JSON array:\n"
+        "[\n"
+        '  {"topic": "Topic name", "category": "Entity | Phenomenon | Story | Concept | Real Science"},\n'
+        "  ...\n"
+        "]\n\n"
+        "Return only the JSON array."
+    )
+
+    msg = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=1000,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    try:
+        start = raw.index("[")
+        end = raw.rindex("]") + 1
+        return json.loads(raw[start:end])
+    except Exception:
+        return [
+            {"topic": "Cthulhu", "category": "Entity"},
+            {"topic": "The Bloop", "category": "Real Science"},
+            {"topic": "Nyarlathotep", "category": "Entity"},
+            {"topic": "Sleep Paralysis and Cosmic Horror", "category": "Phenomenon"},
+            {"topic": "The King in Yellow", "category": "Story"},
+        ]
+
+
+def generate_original_idea(trending_topic: str, api_key: str, existing_titles: list = None) -> dict:
+    """
+    Takes a trending topic as inspiration and generates one fresh original idea
+    that approaches it from a new angle not yet covered on YouTube.
     """
     client = anthropic.Anthropic(api_key=api_key.strip())
 
     existing_text = ""
     if existing_titles:
         existing_text = (
-            f"AVOID these topics — already on the channel ({len(existing_titles)} videos):\n"
-            + "\n".join([f"- {t}" for t in existing_titles[:30]])
+            f"AVOID angles already covered on this channel:\n"
+            + "\n".join([f"- {t}" for t in existing_titles[:20]])
             + "\n\n"
         )
 
     system = (
-        "You are a cosmic horror YouTube content strategist specialising in Lovecraftian "
-        "sleep documentary content — long-form, scholarly, deeply researched scripts for "
-        "audiences who want to listen in the dark to ideas they cannot unknow.\n\n"
-        "You generate specific, original topic ideas grounded in real historical, scientific, "
-        "or literary material. Each topic must have enough depth for a 12,000 word script.\n\n"
+        "You are a cosmic horror YouTube content strategist. "
+        "Given a trending topic, you find a fresh unexplored angle that hasn't been done yet. "
+        "The idea must be grounded in real verifiable data — not just Lovecraft lore. "
+        "It must have enough depth for a 12,000 word sleep documentary script. "
         "Output only valid JSON."
     )
 
     user = (
+        f"Trending topic: {trending_topic}\n\n"
         f"{existing_text}"
-        f"Generate 12 original topic ideas for a cosmic horror sleep documentary channel.\n\n"
-        f"Topics must:\n"
-        f"- Connect to Lovecraftian cosmic horror or broader cosmic horror tradition\n"
-        f"- Have a specific angle not already exhausted on YouTube\n"
-        f"- Be grounded in real verifiable data, history, or literature\n"
-        f"- Be suitable for sleep-style listening — scholarly, atmospheric, unsettling\n\n"
+        f"Generate ONE original idea inspired by this topic but with a fresh angle.\n\n"
         f"Return JSON:\n"
         f'{{\n'
-        f'  "topics": [\n'
-        f'    {{\n'
-        f'      "title_seed": "Working topic title (not final)",\n'
-        f'      "entity": "Lovecraft entity or cosmic horror concept",\n'
-        f'      "core_argument": "One sentence — the specific argument this documentary makes",\n'
-        f'      "why_now": "One sentence — why this topic is underserved or timely",\n'
-        f'      "depth_rating": 5,\n'
-        f'      "sleep_fit": "high"\n'
-        f'    }}\n'
-        f'  ]\n'
+        f'  "title_seed": "Working title for this original idea",\n'
+        f'  "entity": "Lovecraft entity or cosmic horror concept",\n'
+        f'  "core_argument": "One sentence — the specific argument this documentary makes",\n'
+        f'  "real_anchor": "The specific real-world data point or phenomenon that grounds this",\n'
+        f'  "why_different": "One sentence — what makes this angle fresh vs what already exists",\n'
+        f'  "depth_rating": 5,\n'
+        f'  "sleep_fit": "high"\n'
         f'}}\n\n'
-        f"Generate exactly 12 topics. Prioritise depth and sleep fit. "
         f"Return only the JSON object."
     )
 
     msg = client.messages.create(
         model="claude-haiku-4-5",
-        max_tokens=2500,
+        max_tokens=600,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
@@ -722,17 +761,22 @@ def discover_topics(api_key: str, existing_titles: list = None) -> dict:
         return json.loads(raw[start:end])
     except Exception:
         return {
-            "topics": [
-                {
-                    "title_seed": "The Real Science Behind Lovecraft's Dreaming God",
-                    "entity": "Cthulhu / R'lyeh",
-                    "core_argument": "NOAA's unidentified deep ocean recordings suggest something biological and massive exists at depths no expedition has reached",
-                    "why_now": "The Bloop remains unexplained and new deep sea surveys keep finding anomalies",
-                    "depth_rating": 5,
-                    "sleep_fit": "high"
-                }
-            ]
+            "title_seed": f"The Hidden Truth Behind {trending_topic}",
+            "entity": trending_topic,
+            "core_argument": "Real scientific anomalies suggest the horror Lovecraft described may have a factual basis",
+            "real_anchor": "NOAA deep ocean recordings with no identified source",
+            "why_different": "Focuses on the real data rather than the mythology",
+            "depth_rating": 5,
+            "sleep_fit": "high"
         }
+
+
+def discover_topics(api_key: str, existing_titles: list = None) -> dict:
+    """Legacy wrapper — kept for compatibility."""
+    topics = get_trending_topics(api_key)
+    return {"topics": [{"title_seed": t["topic"], "entity": t["topic"],
+                        "core_argument": "", "why_now": "", "depth_rating": 4,
+                        "sleep_fit": "high"} for t in topics]}
 
 
 def generate_title_formats(topic: dict, api_key: str) -> list:
