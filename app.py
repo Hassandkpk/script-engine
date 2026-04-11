@@ -1285,8 +1285,8 @@ if page == "Divergence Protocol":
                     for c in r["conflicts"]:
                         st.markdown(f"- {c}")
 
-                if r.get("status") == "duplicate":
-                    col1, col2 = st.columns(2)
+                if r.get("status") in ("duplicate", "similar"):
+                    col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("↻ Regenerate outline", key="pro_regen_after_check"):
                             st.session_state.pro_outline = {}
@@ -1299,6 +1299,10 @@ if page == "Divergence Protocol":
                             st.session_state.pro_outline = {}
                             st.session_state.pro_uniqueness = None
                             st.session_state.pro_step = 2
+                            st.rerun()
+                    with col3:
+                        if st.button("Proceed anyway →", key="pro_proceed_anyway"):
+                            st.session_state.pro_step = 6
                             st.rerun()
                 else:
                     if st.button("Confirmed — begin writing →", key="pro_begin_writing"):
