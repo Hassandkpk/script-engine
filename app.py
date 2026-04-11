@@ -17,8 +17,8 @@ from storage import load_data, save_banned, save_script, load_recent_fingerprint
 from generator import (generate_script, generate_titles, generate_protocol_from_title,
                        build_protocol_text, generate_section, generate_outline,
                        check_outline_uniqueness, generate_intro, generate_body_section,
-                       generate_conclusion, audit_section, discover_topics,
-                       generate_title_formats)
+                       generate_conclusion, audit_section, get_trending_topics,
+                       generate_original_idea, generate_title_formats)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -587,14 +587,14 @@ def _render_audit(audit: dict):
 if page == "Topic Discovery":
     st.markdown("<div class='sp-hero-label'>Step 0 — Start here</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-title'>Topic Discovery</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sp-hero-sub'>Specter researches what's trending in cosmic horror right now, checks your channel, and suggests original topics you haven't covered.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-sub'>Pick a trending topic, then get a fresh original angle built around it.</div>", unsafe_allow_html=True)
     st.markdown("")
 
     if not st.session_state.api_key:
         st.warning("Add your Anthropic API key in the sidebar.")
 
     # Step progress
-    td_steps = ["Discover", "Select & Title", "Concept Check", "Proceed"]
+    td_steps = ["Trending Topics", "Original Idea", "Title", "Concept Check"]
     td_current = st.session_state.td_step
     cols = st.columns(4)
     for i, (col, label) in enumerate(zip(cols, td_steps)):
@@ -608,141 +608,179 @@ if page == "Topic Discovery":
 
     st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
 
-    # Reset
     if st.session_state.td_step > 1:
-        if st.button("↺ Start topic discovery over", key="td_reset"):
-            for k in ['td_topics','td_selected_topic','td_title_options','td_final_title','td_step']:
+        if st.button("↺ Start over", key="td_reset"):
+            for k in ['td_topics','td_selected_topic','td_title_options','td_final_title',
+                      'td_step','td_concept_result','td_trending_notes','td_original_idea']:
                 if k in st.session_state: del st.session_state[k]
             st.rerun()
 
     # =========================================================
-    # STEP 1 — DISCOVER
+    # STEP 1 — TRENDING TOPICS
     # =========================================================
     if st.session_state.td_step == 1:
-        st.markdown("<div class='sp-section-label'>Step 1 — Research and discover</div>", unsafe_allow_html=True)
-        st.markdown("<div style='font-size:15px;color:#777;margin-bottom:16px;'>Specter will search YouTube right now to see what's trending in cosmic horror, then generate 12 original topic ideas your channel hasn't covered.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 1 — What's trending in cosmic horror right now</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:15px;color:#777;margin-bottom:16px;'>These are the topics currently getting views in the niche. Click one that interests you — the tool will then generate a fresh original angle around it.</div>", unsafe_allow_html=True)
 
         if not st.session_state.td_topics:
-            if st.button("🔍 Research and generate topics →", key="td_discover_btn"):
-                existing = [s.get("anchor","") for s in data.get("scripts",[])]
-                with st.spinner("Generating topic ideas..."):
-                    try:
-                        result = discover_topics(st.session_state.api_key, existing_titles=existing)
-                        st.session_state.td_topics = result.get("topics", [])
-                        st.session_state.td_trending_notes = result.get("trending_notes", "")
-                    except Exception as e:
-                        st.session_state.api_error = str(e)
-                        st.error(f"Discovery failed: {e}")
-                st.rerun()
+            with st.spinner("Loading trending topics..."):
+                try:
+                    topics = get_trending_topics(st.session_state.api_key)
+                    st.session_state.td_topics = topics
+                except Exception as e:
+                    st.session_state.api_error = str(e)
+                    st.error(f"Failed: {e}")
+            st.rerun()
         else:
-            # Show trending notes
-            if st.session_state.get("td_trending_notes"):
-                st.markdown(f"<div class='sp-reason'>📊 Trending now: {st.session_state.td_trending_notes}</div>", unsafe_allow_html=True)
-
-            st.markdown(f"<div class='sp-section-label'>{len(st.session_state.td_topics)} topic ideas generated — select one</div>", unsafe_allow_html=True)
-
-            for i, topic in enumerate(st.session_state.td_topics):
-                depth = "⭐" * topic.get("depth_rating", 3)
-                sleep_color = {"high": "#16a34a", "medium": "#b45309", "low": "#b91c1c"}.get(topic.get("sleep_fit","medium"), "#888")
-                sleep_label = topic.get("sleep_fit", "medium").upper()
-
-                with st.expander(f"{i+1}. {topic.get('title_seed','')}"):
-                    col1, col2 = st.columns([3,1])
-                    with col1:
-                        st.markdown(f"<div style='font-size:14px;color:#444;margin-bottom:8px'><strong>Entity:</strong> {topic.get('entity','')}</div>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='font-size:14px;color:#444;margin-bottom:8px'><strong>Core argument:</strong> {topic.get('core_argument','')}</div>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='font-size:14px;color:#666'><strong>Why now:</strong> {topic.get('why_now','')}</div>", unsafe_allow_html=True)
-                    with col2:
-                        st.markdown(f"<div style='text-align:center'><div style='font-size:16px'>{depth}</div><div style='font-size:12px;color:#999;margin-top:4px'>Depth</div></div>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='text-align:center;margin-top:8px'><span style='font-size:12px;font-weight:600;color:{sleep_color}'>{sleep_label}</span><div style='font-size:12px;color:#999'>Sleep fit</div></div>", unsafe_allow_html=True)
-
-                    if st.button(f"Select this topic →", key=f"td_select_{i}"):
-                        st.session_state.td_selected_topic = topic
+            topics = st.session_state.td_topics
+            cols = st.columns(2)
+            for i, t in enumerate(topics):
+                col = cols[i % 2]
+                with col:
+                    cat_color = {
+                        "Entity": "#7c3aed",
+                        "Phenomenon": "#0891b2",
+                        "Story": "#059669",
+                        "Concept": "#d97706",
+                        "Real Science": "#b91c1c"
+                    }.get(t.get("category","Concept"), "#888")
+                    st.markdown(f"""
+                    <div style='background:#fff;border:1.5px solid #f0f0f0;border-radius:14px;padding:14px 16px;margin-bottom:10px'>
+                        <div style='font-size:11px;font-weight:600;color:{cat_color};letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px'>{t.get("category","")}</div>
+                        <div style='font-size:16px;font-weight:600;color:#111;margin-bottom:10px'>{t.get("topic","")}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"Generate original idea →", key=f"td_pick_{i}"):
+                        st.session_state.td_selected_topic = t.get("topic","")
                         st.session_state.td_step = 2
                         st.rerun()
 
             st.markdown("")
-            if st.button("↻ Generate 12 different topics", key="td_regen"):
+            if st.button("↻ Load different trending topics", key="td_reload"):
                 st.session_state.td_topics = []
-                st.session_state.td_trending_notes = ""
                 st.rerun()
 
     # =========================================================
-    # STEP 2 — SELECT TITLE FORMAT
+    # STEP 2 — GENERATE ORIGINAL IDEA
     # =========================================================
     elif st.session_state.td_step == 2:
-        topic = st.session_state.td_selected_topic
-        st.markdown(f"<div class='sp-locked-badge'>✓ Topic selected: {topic.get('title_seed','')}</div>", unsafe_allow_html=True)
+        trending = st.session_state.td_selected_topic
+        st.markdown(f"<div class='sp-locked-badge'>✓ Inspired by: {trending}</div>", unsafe_allow_html=True)
         st.markdown("")
-        st.markdown("<div class='sp-section-label'>Step 2 — Choose a title format</div>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 2 — Your original angle</div>", unsafe_allow_html=True)
 
-        if not st.session_state.td_title_options:
-            with st.spinner("Generating title variations..."):
+        if not st.session_state.get("td_original_idea"):
+            with st.spinner(f"Generating a fresh original angle on {trending}..."):
                 try:
-                    options = generate_title_formats(topic, st.session_state.api_key)
-                    st.session_state.td_title_options = options
+                    existing = [s.get("anchor","") for s in data.get("scripts",[])]
+                    idea = generate_original_idea(trending, st.session_state.api_key, existing_titles=existing)
+                    st.session_state.td_original_idea = idea
                 except Exception as e:
-                    st.error(f"Title generation failed: {e}")
+                    st.session_state.api_error = str(e)
+                    st.error(f"Failed: {e}")
             st.rerun()
         else:
-            options = st.session_state.td_title_options
-            for group in options:
+            idea = st.session_state.td_original_idea
+            st.markdown(f"""
+            <div style='background:#faf5ff;border:1.5px solid #e9d5ff;border-radius:14px;padding:18px 20px;margin-bottom:16px'>
+                <div style='font-size:18px;font-weight:700;color:#111;margin-bottom:10px'>{idea.get("title_seed","")}</div>
+                <div style='font-size:14px;color:#444;margin-bottom:8px'><strong>Core argument:</strong> {idea.get("core_argument","")}</div>
+                <div style='font-size:14px;color:#444;margin-bottom:8px'><strong>Real anchor:</strong> {idea.get("real_anchor","")}</div>
+                <div style='font-size:14px;color:#666'><strong>Why different:</strong> {idea.get("why_different","")}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("↻ Generate different idea", key="td_regen_idea"):
+                    st.session_state.td_original_idea = None
+                    st.rerun()
+            with col2:
+                if st.button("← Pick different topic", key="td_back_topics"):
+                    st.session_state.td_original_idea = None
+                    st.session_state.td_step = 1
+                    st.rerun()
+            with col3:
+                if st.button("Use this idea →", key="td_use_idea"):
+                    st.session_state.td_selected_topic = idea
+                    st.session_state.td_step = 3
+                    st.rerun()
+
+    # =========================================================
+    # STEP 3 — TITLE
+    # =========================================================
+    elif st.session_state.td_step == 3:
+        idea = st.session_state.td_selected_topic
+        title_seed = idea.get("title_seed","") if isinstance(idea, dict) else str(idea)
+        st.markdown(f"<div class='sp-locked-badge'>✓ Idea: {title_seed}</div>", unsafe_allow_html=True)
+        st.markdown("")
+        st.markdown("<div class='sp-section-label'>Step 3 — Choose a title format</div>", unsafe_allow_html=True)
+
+        if not st.session_state.td_title_options:
+            topic_dict = idea if isinstance(idea, dict) else {"title_seed": str(idea), "core_argument": "", "entity": ""}
+            with st.spinner("Generating title variations..."):
+                try:
+                    options = generate_title_formats(topic_dict, st.session_state.api_key)
+                    st.session_state.td_title_options = options
+                except Exception as e:
+                    st.session_state.api_error = str(e)
+                    st.error(f"Failed: {e}")
+            st.rerun()
+        else:
+            for group in st.session_state.td_title_options:
                 st.markdown(f"<div style='font-size:12px;font-weight:600;color:#999;letter-spacing:0.08em;text-transform:uppercase;margin:14px 0 8px'>{group.get('format','')}</div>", unsafe_allow_html=True)
                 for title in group.get("titles", []):
                     col1, col2 = st.columns([5,1])
                     with col1:
                         st.markdown(f"<div style='background:#fff;border:1.5px solid #f0f0f0;border-radius:12px;padding:12px 16px;font-size:15px;color:#111'>{title}</div>", unsafe_allow_html=True)
                     with col2:
-                        if st.button("Select", key=f"td_title_{title[:20]}"):
+                        if st.button("Select", key=f"td_title_{hash(title)}"):
                             st.session_state.td_final_title = title
-                            st.session_state.td_step = 3
+                            st.session_state.td_step = 4
                             st.rerun()
 
             st.markdown("")
-            # Custom title option
-            st.markdown("<div class='sp-section-label'>Or write your own title</div>", unsafe_allow_html=True)
-            custom_title = st.text_input("Custom title", placeholder="Write your own refined title...", label_visibility="collapsed", key="td_custom_title")
+            st.markdown("<div class='sp-section-label'>Or write your own</div>", unsafe_allow_html=True)
+            custom = st.text_input("Custom title", placeholder="Write your own refined title...", label_visibility="collapsed", key="td_custom")
             if st.button("Use this title →", key="td_use_custom"):
-                if custom_title.strip():
-                    st.session_state.td_final_title = custom_title.strip()
-                    st.session_state.td_step = 3
+                if custom.strip():
+                    st.session_state.td_final_title = custom.strip()
+                    st.session_state.td_step = 4
                     st.rerun()
-                else:
-                    st.error("Enter a title first.")
 
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("↻ Generate different title formats", key="td_regen_titles"):
+                if st.button("↻ Different title formats", key="td_regen_titles"):
                     st.session_state.td_title_options = []
                     st.rerun()
             with col2:
-                if st.button("← Change topic", key="td_change_topic"):
-                    st.session_state.td_selected_topic = None
+                if st.button("← Change idea", key="td_back_idea"):
                     st.session_state.td_title_options = []
-                    st.session_state.td_step = 1
+                    st.session_state.td_step = 2
                     st.rerun()
 
     # =========================================================
-    # STEP 3 — CONCEPT CHECK
+    # STEP 4 — CONCEPT CHECK
     # =========================================================
-    elif st.session_state.td_step == 3:
-        topic = st.session_state.td_selected_topic
+    elif st.session_state.td_step == 4:
         title = st.session_state.td_final_title
-
         st.markdown(f"<div class='sp-locked-badge'>✓ Title: {title}</div>", unsafe_allow_html=True)
         st.markdown("")
-        st.markdown("<div class='sp-section-label'>Step 3 — Concept check against your channel</div>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 4 — Concept check against your channel</div>", unsafe_allow_html=True)
 
         yt_key = get_youtube_api_key()
         if not st.session_state.channel.get("channel_id") or not yt_key:
-            st.info("No channel linked — skipping concept check. Go to Channel Settings to link your YouTube channel.")
+            st.info("No channel linked — skipping concept check.")
             if st.button("Proceed to script building →", key="td_skip_check"):
-                st.session_state.td_step = 4
-                # Pre-fill pro mode title
                 st.session_state.pro_title = title
-                st.session_state.pro_step = 1
-                st.session_state.pro_concept_result = {"status": "green", "reason": "Check skipped — no channel linked.", "matches": []}
+                st.session_state.pro_concept_result = {"status": "green", "reason": "Check skipped.", "matches": []}
                 st.session_state.pro_step = 2
+                for k in ['pro_protocol','pro_protocol_text','pro_outline','pro_outline_approved',
+                          'pro_uniqueness','pro_intro_text','pro_intro_approved','pro_body_sections',
+                          'pro_body_pending','pro_body_section_num','pro_conclusion_text',
+                          'pro_conclusion_approved','pro_assembled']:
+                    if k in st.session_state: del st.session_state[k]
+                st.session_state.page_override = "Divergence Protocol"
                 st.rerun()
         else:
             if not st.session_state.get("td_concept_result"):
@@ -752,66 +790,48 @@ if page == "Topic Discovery":
                         result = check_concept(title, videos, st.session_state.api_key)
                         st.session_state.td_concept_result = result
                     except Exception as e:
-                        st.warning(f"Concept check failed: {e}")
                         st.session_state.td_concept_result = {"status": "green", "reason": "Check skipped.", "matches": []}
                 st.rerun()
             else:
                 r = st.session_state.td_concept_result
                 colors = {
-                    "green": ("#f0fdf4","#bbf7d0","#16a34a","✓ New concept — not on your channel"),
-                    "yellow": ("#fffbeb","#fde68a","#b45309","⚠ Adjacent — different enough to proceed"),
-                    "red": ("#fef2f2","#fecaca","#b91c1c","✕ Already covered — start over")
+                    "green": ("#f0fdf4","#bbf7d0","#16a34a","✓ New concept"),
+                    "yellow": ("#fffbeb","#fde68a","#b45309","⚠ Adjacent"),
+                    "red": ("#fef2f2","#fecaca","#b91c1c","✕ Already covered")
                 }
                 bg, border, tc, label = colors.get(r.get("status","green"), colors["green"])
                 st.markdown(f"<div style='background:{bg};border:1.5px solid {border};border-radius:14px;padding:16px 18px;margin-bottom:16px'><div style='font-size:15px;font-weight:600;color:{tc};margin-bottom:6px'>{label}</div><div style='font-size:15px;color:{tc}'>{r.get('reason','')}</div></div>", unsafe_allow_html=True)
 
                 if r.get("matches"):
-                    st.markdown("**Overlapping videos:**")
                     for m in r["matches"][:3]:
                         st.markdown(f"- `{m}`")
 
                 if r.get("status") == "red":
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("← Pick a different topic", key="td_red_topic"):
-                            for k in ['td_selected_topic','td_title_options','td_final_title','td_concept_result']:
+                        if st.button("← Pick different topic", key="td_red_topic"):
+                            for k in ['td_selected_topic','td_original_idea','td_title_options','td_final_title','td_concept_result']:
                                 if k in st.session_state: del st.session_state[k]
                             st.session_state.td_step = 1
                             st.rerun()
                     with col2:
-                        if st.button("← Try a different title format", key="td_red_title"):
+                        if st.button("← Try different title", key="td_red_title"):
                             for k in ['td_title_options','td_final_title','td_concept_result']:
                                 if k in st.session_state: del st.session_state[k]
-                            st.session_state.td_step = 2
+                            st.session_state.td_step = 3
                             st.rerun()
                 else:
                     if st.button("✓ Confirmed — build script →", key="td_proceed"):
-                        st.session_state.td_step = 4
-                        # Pre-fill Pro Mode with this title
                         st.session_state.pro_title = title
                         st.session_state.pro_concept_result = r
                         st.session_state.pro_step = 2
-                        # Reset any old pro mode state
-                        for k in ['pro_protocol','pro_protocol_text','pro_outline',
-                                  'pro_outline_approved','pro_uniqueness','pro_intro_text',
-                                  'pro_intro_approved','pro_body_sections','pro_body_pending',
-                                  'pro_body_section_num','pro_conclusion_text',
+                        for k in ['pro_protocol','pro_protocol_text','pro_outline','pro_outline_approved',
+                                  'pro_uniqueness','pro_intro_text','pro_intro_approved','pro_body_sections',
+                                  'pro_body_pending','pro_body_section_num','pro_conclusion_text',
                                   'pro_conclusion_approved','pro_assembled']:
                             if k in st.session_state: del st.session_state[k]
+                        st.session_state.page_override = "Divergence Protocol"
                         st.rerun()
-
-    # =========================================================
-    # STEP 4 — PROCEED TO SCRIPT BUILDER
-    # =========================================================
-    elif st.session_state.td_step == 4:
-        title = st.session_state.td_final_title
-        st.markdown(f"<div class='sp-locked-badge'>✓ Ready to build: {title}</div>", unsafe_allow_html=True)
-        st.markdown("")
-        st.markdown("<div style='font-size:15px;color:#444;margin-bottom:20px;'>Topic confirmed. Click below to go to the script builder — your title is pre-loaded and concept check is already passed.</div>", unsafe_allow_html=True)
-        if st.button("→ Go to Divergence Protocol", key="td_go_protocol"):
-            st.session_state.page_override = "Divergence Protocol"
-            st.rerun()
-
 
 elif page == "Quick Generate":
     st.markdown("<div class='sp-hero-label'>Simple mode — team view</div>", unsafe_allow_html=True)
