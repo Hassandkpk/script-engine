@@ -1,4 +1,4 @@
-from openai import OpenAI
+import anthropic
 import json
 
 
@@ -88,13 +88,14 @@ def apply_voice_filter(raw_script: str, title: str, api_key: str) -> str:
         f"Output only the finished script."
     )
 
-    client = OpenAI(api_key=api_key.strip())
-    message = client.chat.completions.create(
-        model="gpt-4o",
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
         max_tokens=8000,
-        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
     )
-    return message.choices[0].message.content
+    return message.content[0].text
 
 
 def generate_script(protocol: str, word_target: str, tone: str, api_key: str, title: str = "") -> str:
@@ -140,13 +141,14 @@ def generate_script(protocol: str, word_target: str, tone: str, api_key: str, ti
         f"Write the complete script now. Output nothing but the script itself."
     )
 
-    client = OpenAI(api_key=api_key.strip())
-    message = client.chat.completions.create(
-        model="gpt-4o",
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
         max_tokens=8000,
-        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
     )
-    raw_script = message.choices[0].message.content
+    raw_script = message.content[0].text
     final_script = apply_voice_filter(raw_script, title, api_key)
     return final_script
 
@@ -187,13 +189,14 @@ def generate_section(protocol: str, title: str, section_num: int,
         f"Output only the section text."
     )
 
-    client = OpenAI(api_key=api_key.strip())
-    message = client.chat.completions.create(
-        model="gpt-4o",
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
         max_tokens=2000,
-        messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_prompt}]
     )
-    raw = message.choices[0].message.content
+    raw = message.content[0].text
     filtered = apply_voice_filter(raw, title, api_key)
     return filtered
 
@@ -280,13 +283,14 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str,
     )
 
     try:
-        client = OpenAI(api_key=api_key)
-        message = client.chat.completions.create(
-            model="gpt-4o-mini",
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5",
             max_tokens=1200,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
+            system=system,
+        messages=[{"role": "user", "content": user}]
         )
-        raw = message.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+        raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     except Exception as e:
         # Return fallback with error details embedded in reasoning
         return {
@@ -386,14 +390,15 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
         f"Return only the JSON array, nothing else."
     )
 
-    client = OpenAI(api_key=api_key)
-    message = client.chat.completions.create(
-        model="gpt-4o-mini",
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-haiku-4-5",
         max_tokens=2000,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
+        system=system,
+        messages=[{"role": "user", "content": user}]
     )
 
-    raw = message.choices[0].message.content.strip()
+    raw = message.content[0].text.strip()
     raw = raw.replace("```json", "").replace("```", "").strip()
 
     try:
@@ -404,7 +409,7 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
 
 def generate_outline(title: str, protocol: dict, tone: str, api_key: str) -> dict:
     """Generate a structured outline: intro summary, main body sections with bullets, conclusion summary."""
-    client = OpenAI(api_key=api_key.strip())
+    client = anthropic.Anthropic(api_key=api_key.strip())
 
     system = (
         "You are a cosmic horror YouTube script architect. "
@@ -440,12 +445,13 @@ Generate a detailed outline. Return JSON:
 Generate exactly 11 main body sections. Each section heading should be specific, not generic.
 Return only the JSON object."""
 
-    msg = client.chat.completions.create(
-        model="gpt-4o-mini",
+    msg = client.messages.create(
+        model="claude-haiku-4-5",
         max_tokens=4000,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
+        system=system,
+        messages=[{"role": "user", "content": user}]
     )
-    raw = msg.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
 
     # Find JSON boundaries robustly — model sometimes adds text before/after
     try:
@@ -460,7 +466,7 @@ Return only the JSON object."""
 
 def check_outline_uniqueness(title: str, outline: dict, past_scripts: list, api_key: str) -> dict:
     """Check if the outline structure and approach is unique vs past saved scripts."""
-    client = OpenAI(api_key=api_key.strip())
+    client = anthropic.Anthropic(api_key=api_key.strip())
 
     if not past_scripts:
         return {"status": "unique", "reason": "No past scripts to compare against.", "conflicts": []}
@@ -494,12 +500,13 @@ Return JSON:
   "conflicts": ["description of any specific similarity found"]
 }}"""
 
-    msg = client.chat.completions.create(
-        model="gpt-4o-mini",
+    msg = client.messages.create(
+        model="claude-haiku-4-5",
         max_tokens=400,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
+        system=system,
+        messages=[{"role": "user", "content": user}]
     )
-    raw = msg.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(raw)
     except Exception:
@@ -559,11 +566,11 @@ def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
         "Intimate — personal wrongness": "intimate — the wrongness is specific, biological, close; it has already been inside the narrator before they knew to be afraid",
         "Archival — found document": "archival — this reads like something that was not meant to survive; the narrator is reconstructing from fragments someone tried to lose",
     }
-    client = OpenAI(api_key=api_key.strip())
-    msg = client.chat.completions.create(
-        model="gpt-4o",
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
         max_tokens=max_tokens,
-        messages=[{"role": "system", "content": (
+        system=(
             "You are a scholarly documentarian of cosmic horror — part literary historian, "
             "part cultural anthropologist, part philosophical investigator. "
             "You have read too much. That is audible in every sentence you write.\n\n"
@@ -573,12 +580,13 @@ def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
             "Follow the divergence protocol exactly. "
             "Analyze — never perform. Imply — never conclude. "
             "Every sentence adds new information. No sentence restates the previous one. "
-            "Output only the requested content — no labels, no preamble, no commentary.")}, 
-        {"role": "user", "content":
+            "Output only the requested content — no labels, no preamble, no commentary."
+        ),
+        messages=[{"role": "user", "content":
             f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n\n{instruction}"
         }]
     )
-    return msg.choices[0].message.content
+    return msg.content[0].text
 
 
 def audit_section(text: str, outline_section: dict, section_num: int, api_key: str) -> dict:
@@ -587,7 +595,7 @@ def audit_section(text: str, outline_section: dict, section_num: int, api_key: s
     Checks paragraph openers, word repetition, sentence rhythm, outline adherence.
     Returns structured report — does not rewrite, only flags.
     """
-    client = OpenAI(api_key=api_key.strip())
+    client = anthropic.Anthropic(api_key=api_key.strip())
 
     # Build outline context
     heading = outline_section.get("heading", f"Section {section_num}") if outline_section else f"Section {section_num}"
@@ -634,13 +642,14 @@ Return JSON:
 
 Return only the JSON object."""
 
-    msg = client.chat.completions.create(
-        model="gpt-4o-mini",
+    msg = client.messages.create(
+        model="claude-haiku-4-5",
         max_tokens=800,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
+        system=system,
+        messages=[{"role": "user", "content": user}]
     )
 
-    raw = msg.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
@@ -657,7 +666,7 @@ def discover_topics(api_key: str, existing_titles: list = None) -> dict:
     Uses Claude's web search tool to find what's trending.
     Returns structured topic list with rationale.
     """
-    client = OpenAI(api_key=api_key.strip())
+    client = anthropic.Anthropic(api_key=api_key.strip())
 
     existing_text = ""
     if existing_titles:
@@ -709,16 +718,21 @@ def discover_topics(api_key: str, existing_titles: list = None) -> dict:
         f"Return only the JSON object."
     )
 
-    msg = client.chat.completions.create(
-        model="gpt-4o",
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
         max_tokens=3000,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user}
-        ]
+        system=system,
+        tools=[{"type": "web_search_20250305", "name": "web_search"}],
+        messages=[{"role": "user", "content": user}]
     )
 
-    raw = msg.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+    # Extract text from potentially multi-block response
+    full_text = ""
+    for block in msg.content:
+        if hasattr(block, "text"):
+            full_text += block.text
+
+    raw = full_text.strip().replace("```json", "").replace("```", "").strip()
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
@@ -744,7 +758,7 @@ def generate_title_formats(topic: dict, api_key: str) -> list:
     Takes a selected topic and generates title variations
     in multiple formats suited to this channel.
     """
-    client = OpenAI(api_key=api_key.strip())
+    client = anthropic.Anthropic(api_key=api_key.strip())
 
     system = (
         "You generate YouTube title variations for a cosmic horror sleep documentary channel. "
@@ -772,13 +786,14 @@ def generate_title_formats(topic: dict, api_key: str) -> list:
         f"Return only the JSON array."
     )
 
-    msg = client.chat.completions.create(
-        model="gpt-4o-mini",
+    msg = client.messages.create(
+        model="claude-haiku-4-5",
         max_tokens=1000,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
+        system=system,
+        messages=[{"role": "user", "content": user}]
     )
 
-    raw = msg.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     try:
         start = raw.index("[")
         end = raw.rindex("]") + 1
