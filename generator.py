@@ -408,13 +408,36 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
 
 
 def generate_outline(title: str, protocol: dict, tone: str, api_key: str) -> dict:
-    """Generate a structured outline: intro summary, main body sections with bullets, conclusion summary."""
+    """Generate a structured outline shaped by entity knowledge and narrative arc."""
+    from data import get_entity_context
     client = anthropic.Anthropic(api_key=api_key.strip())
 
+    # Get entity-specific context
+    entity = protocol.get("entity", "")
+    ctx = get_entity_context(entity)
+
+    entity_block = ""
+    if ctx:
+        entity_block = (
+            f"\nENTITY CONTEXT — WHO YOU ARE WRITING ABOUT:\n"
+            f"Entity: {entity}\n"
+            f"Nature: {ctx.get('nature', '')}\n"
+            f"Specific horror: {ctx.get('specific_horror', '')}\n"
+            f"How real data connects: {ctx.get('contamination_logic', '')}\n"
+            f"Narrative arc this entity demands: {ctx.get('narrative_arc', '')}\n"
+        )
+
     system = (
-        "You are a cosmic horror YouTube script architect. "
-        "You produce outlines for long-form scripts (~12,000 words total). "
-        "Structure: 150-word intro, main body (~11,700 words across ~11 sections of ~1,000 words each), 150-word conclusion. "
+        "You are a cosmic horror YouTube script architect writing for a sleep documentary audience. "
+        "Your audience has read too much. They listen in the dark. "
+        "They came for ideas they cannot unknow — not science lectures, not lore recaps.\n\n"
+        "CRITICAL: The outline must feel like cosmic horror, not a documentary. "
+        "Section headings must carry dread on their own — a listener reading just the headings "
+        "should feel something is wrong. "
+        "The entity must be present throughout — not as a named thing but as a felt presence "
+        "contaminating the real data. "
+        "The arc must build: early sections establish the real, middle sections show where it leads, "
+        "late sections arrive at what cannot be named.\n\n"
         "Output only valid JSON."
     )
 
@@ -428,22 +451,35 @@ Protocol:
 - Structure: {protocol.get('para', '')}
 - Constraint: {protocol.get('constraint', '')}
 - Tone: {tone}
+{entity_block}
+Generate a 11-section outline. The outline must:
+1. Open with the real anchor data — not the entity, not Lovecraft
+2. Build through sections where the data gets stranger and harder to explain
+3. Arrive in the final sections at the point where the entity and the data are the same thing
+4. End without resolving — the conclusion must leave the listener unable to unknow what they heard
 
-Generate a detailed outline. Return JSON:
+Each section heading must:
+- Sound like it belongs in a cosmic horror documentary, not a physics paper
+- Carry dread on its own — reading the heading alone should feel like something
+- Progress in intensity — section 11 should feel darker than section 1
+
+Return JSON:
 {{
-  "intro": "2-3 sentences describing what the intro establishes and how it opens",
+  "intro": "2-3 sentences: what the intro establishes, how it opens, what voice it uses",
   "sections": [
     {{
-      "heading": "Section heading",
-      "bullets": ["what this section covers", "specific argument or data point", "how it connects to the horror"]
+      "heading": "Section heading — must carry dread",
+      "bullets": [
+        "specific real data point or argument this section makes",
+        "how the entity's presence contaminates this data",
+        "what the listener cannot unknow after this section"
+      ]
     }}
   ],
-  "conclusion": "2-3 sentences describing what the conclusion lands and how it closes",
-  "total_sections": 11
+  "conclusion": "2-3 sentences: what the conclusion lands, how it closes without resolving"
 }}
 
-Generate exactly 11 main body sections. Each section heading should be specific, not generic.
-Return only the JSON object."""
+Generate exactly 11 sections. Return only the JSON object."""
 
     msg = client.messages.create(
         model="claude-haiku-4-5",
@@ -452,15 +488,11 @@ Return only the JSON object."""
         messages=[{"role": "user", "content": user}]
     )
     raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-
-    # Find JSON boundaries robustly — model sometimes adds text before/after
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
-        raw = raw[start:end]
-        return json.loads(raw)
+        return json.loads(raw[start:end])
     except Exception as e:
-        # Return raw text in intro so we can see what went wrong
         return {"intro": f"Parse error: {str(e)} | Raw: {raw[:300]}", "sections": [], "conclusion": ""}
 
 
@@ -513,18 +545,23 @@ Return JSON:
         return {"status": "unique", "reason": "Check inconclusive.", "conflicts": []}
 
 
-def generate_intro(title: str, protocol_text: str, outline: dict, tone: str, api_key: str) -> str:
+def generate_intro(title: str, protocol_text: str, outline: dict, tone: str, api_key: str,
+                   entity: str = "", entity_ctx: dict = None) -> str:
     raw = _generate_part(
         title, protocol_text, tone, api_key,
         instruction=f"Write ONLY the intro (exactly 150 words). Intro outline: {outline.get('intro', '')}. "
-                    "No section headings. Just the opening 150 words of the script.",
-        max_tokens=600
+                    "No section headings. Just the opening 150 words of the script. "
+                    "Open with the real anchor data — not the entity name, not Lovecraft. "
+                    "The dread must emerge from the data itself.",
+        max_tokens=600,
+        entity=entity, entity_ctx=entity_ctx
     )
     return apply_voice_filter(raw, title, api_key)
 
 
 def generate_body_section(title: str, protocol_text: str, outline: dict, section_num: int,
-                           approved_parts: list, tone: str, api_key: str) -> str:
+                           approved_parts: list, tone: str, api_key: str,
+                           entity: str = "", entity_ctx: dict = None) -> str:
     sections = outline.get("sections", [])
     if section_num <= len(sections):
         sec = sections[section_num - 1]
@@ -539,33 +576,51 @@ def generate_body_section(title: str, protocol_text: str, outline: dict, section
         title, protocol_text, tone, api_key,
         instruction=f"{prior_text}Write ONLY section {section_num} of the main body (~1,000 words).\n{section_brief}\n"
                     "No intro recap. No conclusion. Continue naturally. Output only this section.",
-        max_tokens=2000
+        max_tokens=2000,
+        entity=entity, entity_ctx=entity_ctx
     )
     return apply_voice_filter(raw, title, api_key)
 
 
 def generate_conclusion(title: str, protocol_text: str, outline: dict,
-                         approved_parts: list, tone: str, api_key: str) -> str:
+                         approved_parts: list, tone: str, api_key: str,
+                         entity: str = "", entity_ctx: dict = None) -> str:
     prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
     prior_text = f"APPROVED FINAL BODY SECTIONS (for continuity):\n{prior}\n\n" if prior else ""
     raw = _generate_part(
         title, protocol_text, tone, api_key,
         instruction=f"{prior_text}Write ONLY the conclusion (exactly 150 words). "
                     f"Conclusion outline: {outline.get('conclusion', '')}. "
-                    "Land the horror. No new information. Close the script. Output only the conclusion.",
-        max_tokens=600
+                    "Land the horror. No new information. Do not resolve. "
+                    "End on something the listener cannot unknow. Output only the conclusion.",
+        max_tokens=600,
+        entity=entity, entity_ctx=entity_ctx
     )
     return apply_voice_filter(raw, title, api_key)
 
 
 def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
-                   instruction: str, max_tokens: int = 2000) -> str:
+                   instruction: str, max_tokens: int = 2000,
+                   entity: str = "", entity_ctx: dict = None) -> str:
     tone_map = {
         "Existential — scale horror": "existential — the horror emerges from scale, from the arithmetic of insignificance, from what the numbers actually mean",
         "Forensic — clinical dread": "forensic and clinical — the horror lives in precision, in the specific measurement, in what the data implies and refuses to say",
         "Intimate — personal wrongness": "intimate — the wrongness is specific, biological, close; it has already been inside the narrator before they knew to be afraid",
         "Archival — found document": "archival — this reads like something that was not meant to survive; the narrator is reconstructing from fragments someone tried to lose",
     }
+
+    entity_block = ""
+    if entity_ctx:
+        entity_block = (
+            f"\nENTITY THIS SCRIPT IS ABOUT — {entity}:\n"
+            f"Nature: {entity_ctx.get('nature', '')}\n"
+            f"Specific horror: {entity_ctx.get('specific_horror', '')}\n"
+            f"How real data connects: {entity_ctx.get('contamination_logic', '')}\n\n"
+            f"CRITICAL: The entity must be felt throughout this section, not named. "
+            f"The real data and the entity's nature should become indistinguishable by the end. "
+            f"Never write a science lecture. The data is evidence. The entity is the conclusion.\n"
+        )
+
     client = anthropic.Anthropic(api_key=api_key.strip())
     msg = client.messages.create(
         model="claude-sonnet-4-6",
@@ -583,7 +638,7 @@ def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
             "Output only the requested content — no labels, no preamble, no commentary."
         ),
         messages=[{"role": "user", "content":
-            f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n\n{instruction}"
+            f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n{entity_block}\n{instruction}"
         }]
     )
     return msg.content[0].text
