@@ -625,7 +625,7 @@ if page == "Topic Discovery":
         if not st.session_state.td_topics:
             if st.button("🔍 Research and generate topics →", key="td_discover_btn"):
                 existing = [s.get("anchor","") for s in data.get("scripts",[])]
-                with st.spinner("Searching YouTube for trending cosmic horror content... this takes 20-30 seconds"):
+                with st.spinner("Generating topic ideas..."):
                     try:
                         result = discover_topics(st.session_state.api_key, existing_titles=existing)
                         st.session_state.td_topics = result.get("topics", [])
