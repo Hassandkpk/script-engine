@@ -463,10 +463,12 @@ if 'channel' not in st.session_state:
     st.session_state.channel = load_channel()
 if 'concept_result' not in st.session_state:
     st.session_state.concept_result = None
+if 'api_error' not in st.session_state:
+    st.session_state.api_error = None
 if 'api_key' not in st.session_state:
     # Try to load from Streamlit secrets (works on Streamlit Cloud and locally via .streamlit/secrets.toml)
     try:
-        st.session_state.api_key = st.secrets["OPENAI_API_KEY"]
+        st.session_state.api_key = st.secrets["ANTHROPIC_API_KEY"]
     except Exception:
         st.session_state.api_key = ""
 
@@ -479,18 +481,30 @@ with st.sidebar:
     st.markdown("---")
 
     try:
-        _from_secrets = bool(st.secrets.get("OPENAI_API_KEY"))
+        _from_secrets = bool(st.secrets.get("ANTHROPIC_API_KEY"))
     except Exception:
         _from_secrets = False
 
     if _from_secrets:
-        st.markdown("<div style='font-size:14px;color:#16a34a;font-weight:500;margin-bottom:4px;'>✓ API connected</div>", unsafe_allow_html=True)
+        # Test the key is actually valid by checking it loads
+        _key = st.session_state.api_key
+        if _key and len(_key) > 20:
+            st.markdown("<div style='font-size:14px;color:#16a34a;font-weight:500;margin-bottom:4px;'>✓ API connected</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='font-size:14px;color:#b91c1c;font-weight:500;margin-bottom:4px;'>✕ API key invalid — check Secrets</div>", unsafe_allow_html=True)
     else:
         _api_key_input = st.text_input("Anthropic API Key", type="password",
                                  value=st.session_state.api_key,
                                  placeholder="sk-ant-...")
         if _api_key_input:
             st.session_state.api_key = _api_key_input
+
+    # Show persistent API errors stored in session state
+    if st.session_state.get("api_error"):
+        st.markdown(f"<div style='background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px;font-size:13px;color:#b91c1c;margin-top:8px;word-break:break-all;'><strong>API Error:</strong><br>{st.session_state.api_error}</div>", unsafe_allow_html=True)
+        if st.button("Clear error", key="clear_api_error"):
+            st.session_state.api_error = None
+            st.rerun()
 
     st.markdown("---")
 
@@ -617,6 +631,7 @@ if page == "Topic Discovery":
                         st.session_state.td_topics = result.get("topics", [])
                         st.session_state.td_trending_notes = result.get("trending_notes", "")
                     except Exception as e:
+                        st.session_state.api_error = str(e)
                         st.error(f"Discovery failed: {e}")
                 st.rerun()
         else:
