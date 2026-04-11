@@ -661,91 +661,73 @@ Return only the JSON object."""
 
 def discover_topics(api_key: str, existing_titles: list = None) -> dict:
     """
-    Researches trending cosmic horror YouTube topics and generates
-    fresh topic ideas for sleep documentary style content.
-    Uses Claude's web search tool to find what's trending.
-    Returns structured topic list with rationale.
+    Generates fresh cosmic horror topic ideas using Claude's knowledge.
+    Fast — no web search, instant response.
     """
     client = anthropic.Anthropic(api_key=api_key.strip())
 
     existing_text = ""
     if existing_titles:
         existing_text = (
-            f"\nAVOID these topics — already on the channel ({len(existing_titles)} videos):\n"
-            + "\n".join([f"- {t}" for t in existing_titles[:50]])
+            f"AVOID these topics — already on the channel ({len(existing_titles)} videos):\n"
+            + "\n".join([f"- {t}" for t in existing_titles[:30]])
             + "\n\n"
         )
 
     system = (
-        "You are a cosmic horror YouTube content strategist specialising in sleep documentary "
-        "style content — long-form, scholarly, deeply researched scripts for audiences who "
-        "want to listen in the dark to ideas they cannot unknow.\n\n"
-        "You research what is currently trending in cosmic horror YouTube, "
-        "identify gaps in the content landscape, and generate specific, original topic ideas "
-        "that have at least 20 minutes of documentary-quality material available.\n\n"
-        "Each topic must:\n"
-        "- Connect to Lovecraftian cosmic horror OR broader cosmic horror tradition\n"
-        "- Have enough real historical, scientific, or literary depth for 12,000 words\n"
-        "- Be suitable for sleep-style listening — atmospheric, scholarly, unsettling\n"
-        "- NOT be a simple listicle or top-10 format\n"
-        "- Have a specific angle that hasn't been exhausted on YouTube\n\n"
-        "Search YouTube and Google for what's trending in cosmic horror content right now. "
-        "Then generate topics that fill gaps in the current landscape.\n\n"
+        "You are a cosmic horror YouTube content strategist specialising in Lovecraftian "
+        "sleep documentary content — long-form, scholarly, deeply researched scripts for "
+        "audiences who want to listen in the dark to ideas they cannot unknow.\n\n"
+        "You generate specific, original topic ideas grounded in real historical, scientific, "
+        "or literary material. Each topic must have enough depth for a 12,000 word script.\n\n"
         "Output only valid JSON."
     )
 
     user = (
-        f"Research trending cosmic horror YouTube content right now. "
-        f"Search for: 'cosmic horror YouTube 2025 2026 trending', "
-        f"'Lovecraft documentary YouTube sleep', 'cosmic horror sleep stories trending'.\n\n"
         f"{existing_text}"
-        f"Then generate 12 original topic ideas for a sleep documentary cosmic horror channel.\n\n"
+        f"Generate 12 original topic ideas for a cosmic horror sleep documentary channel.\n\n"
+        f"Topics must:\n"
+        f"- Connect to Lovecraftian cosmic horror or broader cosmic horror tradition\n"
+        f"- Have a specific angle not already exhausted on YouTube\n"
+        f"- Be grounded in real verifiable data, history, or literature\n"
+        f"- Be suitable for sleep-style listening — scholarly, atmospheric, unsettling\n\n"
         f"Return JSON:\n"
         f'{{\n'
-        f'  "trending_notes": "2-3 sentences on what you found trending right now",\n'
         f'  "topics": [\n'
         f'    {{\n'
         f'      "title_seed": "Working topic title (not final)",\n'
         f'      "entity": "Lovecraft entity or cosmic horror concept",\n'
         f'      "core_argument": "One sentence — the specific argument this documentary makes",\n'
-        f'      "why_now": "One sentence — why this topic is timely or underserved",\n'
-        f'      "depth_rating": 1-5,\n'
-        f'      "sleep_fit": "high | medium | low"\n'
+        f'      "why_now": "One sentence — why this topic is underserved or timely",\n'
+        f'      "depth_rating": 5,\n'
+        f'      "sleep_fit": "high"\n'
         f'    }}\n'
         f'  ]\n'
         f'}}\n\n'
-        f"Generate exactly 12 topics. Prioritise high depth_rating and high sleep_fit. "
+        f"Generate exactly 12 topics. Prioritise depth and sleep fit. "
         f"Return only the JSON object."
     )
 
     msg = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=3000,
+        model="claude-haiku-4-5",
+        max_tokens=2500,
         system=system,
-        tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": user}]
     )
 
-    # Extract text from potentially multi-block response
-    full_text = ""
-    for block in msg.content:
-        if hasattr(block, "text"):
-            full_text += block.text
-
-    raw = full_text.strip().replace("```json", "").replace("```", "").strip()
+    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
         return json.loads(raw[start:end])
     except Exception:
         return {
-            "trending_notes": "Search completed. Generating topics based on current cosmic horror landscape.",
             "topics": [
                 {
                     "title_seed": "The Real Science Behind Lovecraft's Dreaming God",
                     "entity": "Cthulhu / R'lyeh",
                     "core_argument": "NOAA's unidentified deep ocean recordings suggest something biological and massive exists at depths no expedition has reached",
-                    "why_now": "The Bloop anniversary and new deep sea survey data make this timely",
+                    "why_now": "The Bloop remains unexplained and new deep sea surveys keep finding anomalies",
                     "depth_rating": 5,
                     "sleep_fit": "high"
                 }
