@@ -17,8 +17,8 @@ from storage import load_data, save_banned, save_script, load_recent_fingerprint
 from generator import (generate_script, generate_titles, generate_protocol_from_title,
                        build_protocol_text, generate_section, generate_outline,
                        check_outline_uniqueness, generate_intro, generate_body_section,
-                       generate_conclusion, audit_section, discover_topics,
-                       generate_title_formats)
+                       generate_conclusion, audit_section, revise_section_from_audit,
+                       discover_topics, generate_title_formats)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -1298,12 +1298,12 @@ if page == "Divergence Protocol":
                     st.session_state.pro_intro_audit = None
                 st.rerun()
 
+            st.markdown("<div style='font-size:12px;font-weight:600;color:#999;letter-spacing:0.05em;margin-bottom:6px'>EDIT INTRO — type directly to make manual changes</div>", unsafe_allow_html=True)
             edited_intro = st.text_area("Intro", value=st.session_state.pro_intro_text, height=200,
                                          label_visibility="collapsed", key="pro_intro_area")
             wc = len(edited_intro.split())
             st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
 
-            # Audit button
             col1, col2, col3 = st.columns(3)
             with col1:
                 if st.button("↻ Regenerate intro", key="pro_regen_intro"):
@@ -1316,6 +1316,8 @@ if page == "Divergence Protocol":
                         st.session_state.pro_intro_audit = audit_section(
                             edited_intro, {}, 0, st.session_state.api_key
                         )
+                    st.session_state.pro_intro_text = edited_intro
+                    st.rerun()
             with col3:
                 if st.button("✓ Approve intro →", key="pro_approve_intro"):
                     st.session_state.pro_intro_text = edited_intro
@@ -1323,9 +1325,23 @@ if page == "Divergence Protocol":
                     st.session_state.pro_intro_audit = None
                     st.rerun()
 
-            # Show intro audit report
+            # Show intro audit report + revision option
             if st.session_state.pro_intro_audit:
                 _render_audit(st.session_state.pro_intro_audit)
+                audit = st.session_state.pro_intro_audit
+                if audit.get("total_issues", 0) > 0:
+                    st.markdown("")
+                    if st.button("✦ Revise intro to fix audit issues", key="pro_revise_intro"):
+                        with st.spinner("Revising intro based on audit..."):
+                            revised = revise_section_from_audit(
+                                st.session_state.pro_intro_text,
+                                audit,
+                                title,
+                                st.session_state.api_key
+                            )
+                            st.session_state.pro_intro_text = revised
+                            st.session_state.pro_intro_audit = None
+                        st.rerun()
 
         else:
             st.markdown(f"<div class='sp-locked-badge'>✓ Intro approved ({len(st.session_state.pro_intro_text.split())} words)</div>", unsafe_allow_html=True)

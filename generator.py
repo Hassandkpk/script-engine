@@ -659,6 +659,60 @@ Return only the JSON object."""
                 "rhythm_flags": [], "outline_flags": [], "redundancy_flags": [], "paragraph_openers": []}
 
 
+def revise_section_from_audit(section_text: str, audit: dict, title: str, api_key: str) -> str:
+    """
+    Takes a section and its audit report, fixes exactly the flagged issues.
+    Preserves all factual content — only fixes structural and stylistic problems.
+    """
+    client = anthropic.Anthropic(api_key=api_key.strip())
+
+    # Build a plain list of every flagged issue
+    issues = []
+    for flag in audit.get("opener_flags", []):
+        issues.append(f"PARAGRAPH OPENER: {flag}")
+    for flag in audit.get("repetition_flags", []):
+        issues.append(f"WORD REPETITION: {flag}")
+    for flag in audit.get("rhythm_flags", []):
+        issues.append(f"SENTENCE RHYTHM: {flag}")
+    for flag in audit.get("outline_flags", []):
+        issues.append(f"OUTLINE ADHERENCE: {flag}")
+    for flag in audit.get("redundancy_flags", []):
+        issues.append(f"REDUNDANCY: {flag}")
+
+    if not issues:
+        return section_text
+
+    issues_text = "\n".join([f"- {i}" for i in issues])
+
+    system = (
+        "You are a script editor for a cosmic horror sleep documentary channel. "
+        "You fix specific flagged issues in a section of script without changing anything else. "
+        "Preserve every factual claim, every data point, every argument. "
+        "Do not restructure the section — only fix the exact issues listed. "
+        "Output only the revised section text. No preamble, no commentary."
+    )
+
+    user = (
+        f"Video title: {title}\n\n"
+        f"Section to revise:\n\n{section_text}\n\n"
+        f"Fix ONLY these specific flagged issues:\n{issues_text}\n\n"
+        f"Rules:\n"
+        f"- Preserve all facts, arguments, and data points exactly\n"
+        f"- Do not add new content\n"
+        f"- Do not change the overall structure\n"
+        f"- Fix only what is listed above\n\n"
+        f"Output only the revised section."
+    )
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=4000,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+    return msg.content[0].text
+
+
 def discover_topics(api_key: str, existing_titles: list = None) -> dict:
     """
     Researches trending cosmic horror YouTube topics and generates
