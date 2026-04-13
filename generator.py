@@ -285,10 +285,10 @@ def generate_protocol_from_title(title: str, banned: list, api_key: str,
     try:
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
-            model="claude-haiku-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1200,
             system=system,
-        messages=[{"role": "user", "content": user}]
+            messages=[{"role": "user", "content": user}]
         )
         raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
     except Exception as e:
@@ -392,7 +392,7 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=2000,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -408,36 +408,13 @@ def generate_titles(script: str, styles: list, count: int, api_key: str) -> list
 
 
 def generate_outline(title: str, protocol: dict, tone: str, api_key: str) -> dict:
-    """Generate a structured outline shaped by entity knowledge and narrative arc."""
-    from data import get_entity_context
+    """Generate a structured outline: intro summary, main body sections with bullets, conclusion summary."""
     client = anthropic.Anthropic(api_key=api_key.strip())
 
-    # Get entity-specific context
-    entity = protocol.get("entity", "")
-    ctx = get_entity_context(entity)
-
-    entity_block = ""
-    if ctx:
-        entity_block = (
-            f"\nENTITY CONTEXT — WHO YOU ARE WRITING ABOUT:\n"
-            f"Entity: {entity}\n"
-            f"Nature: {ctx.get('nature', '')}\n"
-            f"Specific horror: {ctx.get('specific_horror', '')}\n"
-            f"How real data connects: {ctx.get('contamination_logic', '')}\n"
-            f"Narrative arc this entity demands: {ctx.get('narrative_arc', '')}\n"
-        )
-
     system = (
-        "You are a cosmic horror YouTube script architect writing for a sleep documentary audience. "
-        "Your audience has read too much. They listen in the dark. "
-        "They came for ideas they cannot unknow — not science lectures, not lore recaps.\n\n"
-        "CRITICAL: The outline must feel like cosmic horror, not a documentary. "
-        "Section headings must carry dread on their own — a listener reading just the headings "
-        "should feel something is wrong. "
-        "The entity must be present throughout — not as a named thing but as a felt presence "
-        "contaminating the real data. "
-        "The arc must build: early sections establish the real, middle sections show where it leads, "
-        "late sections arrive at what cannot be named.\n\n"
+        "You are a cosmic horror YouTube script architect. "
+        "You produce outlines for long-form scripts (~12,000 words total). "
+        "Structure: 150-word intro, main body (~11,700 words across ~11 sections of ~1,000 words each), 150-word conclusion. "
         "Output only valid JSON."
     )
 
@@ -451,48 +428,39 @@ Protocol:
 - Structure: {protocol.get('para', '')}
 - Constraint: {protocol.get('constraint', '')}
 - Tone: {tone}
-{entity_block}
-Generate a 11-section outline. The outline must:
-1. Open with the real anchor data — not the entity, not Lovecraft
-2. Build through sections where the data gets stranger and harder to explain
-3. Arrive in the final sections at the point where the entity and the data are the same thing
-4. End without resolving — the conclusion must leave the listener unable to unknow what they heard
 
-Each section heading must:
-- Sound like it belongs in a cosmic horror documentary, not a physics paper
-- Carry dread on its own — reading the heading alone should feel like something
-- Progress in intensity — section 11 should feel darker than section 1
-
-Return JSON:
+Generate a detailed outline. Return JSON:
 {{
-  "intro": "2-3 sentences: what the intro establishes, how it opens, what voice it uses",
+  "intro": "2-3 sentences describing what the intro establishes and how it opens",
   "sections": [
     {{
-      "heading": "Section heading — must carry dread",
-      "bullets": [
-        "specific real data point or argument this section makes",
-        "how the entity's presence contaminates this data",
-        "what the listener cannot unknow after this section"
-      ]
+      "heading": "Section heading",
+      "bullets": ["what this section covers", "specific argument or data point", "how it connects to the horror"]
     }}
   ],
-  "conclusion": "2-3 sentences: what the conclusion lands, how it closes without resolving"
+  "conclusion": "2-3 sentences describing what the conclusion lands and how it closes",
+  "total_sections": 11
 }}
 
-Generate exactly 11 sections. Return only the JSON object."""
+Generate exactly 11 main body sections. Each section heading should be specific, not generic.
+Return only the JSON object."""
 
     msg = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=4000,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
     raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+
+    # Find JSON boundaries robustly — model sometimes adds text before/after
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
-        return json.loads(raw[start:end])
+        raw = raw[start:end]
+        return json.loads(raw)
     except Exception as e:
+        # Return raw text in intro so we can see what went wrong
         return {"intro": f"Parse error: {str(e)} | Raw: {raw[:300]}", "sections": [], "conclusion": ""}
 
 
@@ -533,7 +501,7 @@ Return JSON:
 }}"""
 
     msg = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=400,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -545,23 +513,18 @@ Return JSON:
         return {"status": "unique", "reason": "Check inconclusive.", "conflicts": []}
 
 
-def generate_intro(title: str, protocol_text: str, outline: dict, tone: str, api_key: str,
-                   entity: str = "", entity_ctx: dict = None) -> str:
+def generate_intro(title: str, protocol_text: str, outline: dict, tone: str, api_key: str) -> str:
     raw = _generate_part(
         title, protocol_text, tone, api_key,
         instruction=f"Write ONLY the intro (exactly 150 words). Intro outline: {outline.get('intro', '')}. "
-                    "No section headings. Just the opening 150 words of the script. "
-                    "Open with the real anchor data — not the entity name, not Lovecraft. "
-                    "The dread must emerge from the data itself.",
-        max_tokens=600,
-        entity=entity, entity_ctx=entity_ctx
+                    "No section headings. Just the opening 150 words of the script.",
+        max_tokens=600
     )
     return apply_voice_filter(raw, title, api_key)
 
 
 def generate_body_section(title: str, protocol_text: str, outline: dict, section_num: int,
-                           approved_parts: list, tone: str, api_key: str,
-                           entity: str = "", entity_ctx: dict = None) -> str:
+                           approved_parts: list, tone: str, api_key: str) -> str:
     sections = outline.get("sections", [])
     if section_num <= len(sections):
         sec = sections[section_num - 1]
@@ -576,51 +539,33 @@ def generate_body_section(title: str, protocol_text: str, outline: dict, section
         title, protocol_text, tone, api_key,
         instruction=f"{prior_text}Write ONLY section {section_num} of the main body (~1,000 words).\n{section_brief}\n"
                     "No intro recap. No conclusion. Continue naturally. Output only this section.",
-        max_tokens=2000,
-        entity=entity, entity_ctx=entity_ctx
+        max_tokens=2000
     )
     return apply_voice_filter(raw, title, api_key)
 
 
 def generate_conclusion(title: str, protocol_text: str, outline: dict,
-                         approved_parts: list, tone: str, api_key: str,
-                         entity: str = "", entity_ctx: dict = None) -> str:
+                         approved_parts: list, tone: str, api_key: str) -> str:
     prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
     prior_text = f"APPROVED FINAL BODY SECTIONS (for continuity):\n{prior}\n\n" if prior else ""
     raw = _generate_part(
         title, protocol_text, tone, api_key,
         instruction=f"{prior_text}Write ONLY the conclusion (exactly 150 words). "
                     f"Conclusion outline: {outline.get('conclusion', '')}. "
-                    "Land the horror. No new information. Do not resolve. "
-                    "End on something the listener cannot unknow. Output only the conclusion.",
-        max_tokens=600,
-        entity=entity, entity_ctx=entity_ctx
+                    "Land the horror. No new information. Close the script. Output only the conclusion.",
+        max_tokens=600
     )
     return apply_voice_filter(raw, title, api_key)
 
 
 def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
-                   instruction: str, max_tokens: int = 2000,
-                   entity: str = "", entity_ctx: dict = None) -> str:
+                   instruction: str, max_tokens: int = 2000) -> str:
     tone_map = {
         "Existential — scale horror": "existential — the horror emerges from scale, from the arithmetic of insignificance, from what the numbers actually mean",
         "Forensic — clinical dread": "forensic and clinical — the horror lives in precision, in the specific measurement, in what the data implies and refuses to say",
         "Intimate — personal wrongness": "intimate — the wrongness is specific, biological, close; it has already been inside the narrator before they knew to be afraid",
         "Archival — found document": "archival — this reads like something that was not meant to survive; the narrator is reconstructing from fragments someone tried to lose",
     }
-
-    entity_block = ""
-    if entity_ctx:
-        entity_block = (
-            f"\nENTITY THIS SCRIPT IS ABOUT — {entity}:\n"
-            f"Nature: {entity_ctx.get('nature', '')}\n"
-            f"Specific horror: {entity_ctx.get('specific_horror', '')}\n"
-            f"How real data connects: {entity_ctx.get('contamination_logic', '')}\n\n"
-            f"CRITICAL: The entity must be felt throughout this section, not named. "
-            f"The real data and the entity's nature should become indistinguishable by the end. "
-            f"Never write a science lecture. The data is evidence. The entity is the conclusion.\n"
-        )
-
     client = anthropic.Anthropic(api_key=api_key.strip())
     msg = client.messages.create(
         model="claude-sonnet-4-6",
@@ -638,7 +583,7 @@ def _generate_part(title: str, protocol_text: str, tone: str, api_key: str,
             "Output only the requested content — no labels, no preamble, no commentary."
         ),
         messages=[{"role": "user", "content":
-            f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n{entity_block}\n{instruction}"
+            f"Title: {title}\nTone: {tone_map.get(tone, tone)}\n\nProtocol:\n{protocol_text}\n\n{instruction}"
         }]
     )
     return msg.content[0].text
@@ -698,7 +643,7 @@ Return JSON:
 Return only the JSON object."""
 
     msg = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-haiku-4-5-20251001",
         max_tokens=800,
         system=system,
         messages=[{"role": "user", "content": user}]
@@ -714,97 +659,72 @@ Return only the JSON object."""
                 "rhythm_flags": [], "outline_flags": [], "redundancy_flags": [], "paragraph_openers": []}
 
 
-def get_trending_topics(api_key: str) -> list:
+def discover_topics(api_key: str, existing_titles: list = None) -> dict:
     """
-    Returns a list of currently popular/trending cosmic horror YouTube topics.
-    These are real topics that are working in the niche right now — not original ideas.
-    Fast — uses Haiku, no web search.
-    """
-    client = anthropic.Anthropic(api_key=api_key.strip())
-
-    system = (
-        "You are a cosmic horror YouTube analyst. "
-        "You know exactly what topics are currently popular and trending in the cosmic horror niche on YouTube. "
-        "Output only valid JSON."
-    )
-
-    user = (
-        "List 15 specific cosmic horror YouTube topics that are currently popular and getting views. "
-        "These should be real topics that channels are covering right now — entities, phenomena, stories, concepts. "
-        "Not original ideas — just what's trending in the niche.\n\n"
-        "Return JSON array:\n"
-        "[\n"
-        '  {"topic": "Topic name", "category": "Entity | Phenomenon | Story | Concept | Real Science"},\n'
-        "  ...\n"
-        "]\n\n"
-        "Return only the JSON array."
-    )
-
-    msg = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=1000,
-        system=system,
-        messages=[{"role": "user", "content": user}]
-    )
-
-    raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    try:
-        start = raw.index("[")
-        end = raw.rindex("]") + 1
-        return json.loads(raw[start:end])
-    except Exception:
-        return [
-            {"topic": "Cthulhu", "category": "Entity"},
-            {"topic": "The Bloop", "category": "Real Science"},
-            {"topic": "Nyarlathotep", "category": "Entity"},
-            {"topic": "Sleep Paralysis and Cosmic Horror", "category": "Phenomenon"},
-            {"topic": "The King in Yellow", "category": "Story"},
-        ]
-
-
-def generate_original_idea(trending_topic: str, api_key: str, existing_titles: list = None) -> dict:
-    """
-    Takes a trending topic as inspiration and generates one fresh original idea
-    that approaches it from a new angle not yet covered on YouTube.
+    Researches trending cosmic horror YouTube topics and generates
+    fresh topic ideas for sleep documentary style content.
+    Uses Claude's web search tool to find what's trending.
+    Returns structured topic list with rationale.
     """
     client = anthropic.Anthropic(api_key=api_key.strip())
 
     existing_text = ""
     if existing_titles:
         existing_text = (
-            f"AVOID angles already covered on this channel:\n"
-            + "\n".join([f"- {t}" for t in existing_titles[:20]])
+            f"\nAVOID these topics — already on the channel ({len(existing_titles)} videos):\n"
+            + "\n".join([f"- {t}" for t in existing_titles[:50]])
             + "\n\n"
         )
 
     system = (
-        "You are a cosmic horror YouTube content strategist. "
-        "Given a trending topic, you find a fresh unexplored angle that hasn't been done yet. "
-        "The idea must be grounded in real verifiable data — not just Lovecraft lore. "
-        "It must have enough depth for a 12,000 word sleep documentary script. "
+        "You are a cosmic horror YouTube content strategist specialising in sleep documentary "
+        "style content — long-form, scholarly, deeply researched scripts for audiences who "
+        "want to listen in the dark to ideas they cannot unknow.\n\n"
+        "STRICT NICHE RULE — every topic must be rooted exclusively in:\n"
+        "- Lovecraft's mythos and entities (Cthulhu, Nyarlathotep, Azathoth, Yog-Sothoth, Shub-Niggurath, etc.)\n"
+        "- Specific works from Lovecraft's literary circle and successors "
+        "(Arthur Machen, William Hope Hodgson, Robert W. Chambers, Clark Ashton Smith, "
+        "Algernon Blackwood, Thomas Ligotti, Laird Barron, Ramsey Campbell)\n"
+        "- Philosophical and metaphysical concepts native to cosmic horror literature "
+        "(cosmic indifferentism, the sublime, the numinous, ontological dread)\n"
+        "- Real-world science or history that directly connects to a specific Lovecraft entity or concept\n\n"
+        "ABSOLUTE BANS — never suggest:\n"
+        "- Pop culture or mainstream media (no Stranger Things, no movies, no TV shows)\n"
+        "- General horror that is not specifically cosmic horror\n"
+        "- Any topic not traceable to Lovecraft or the Lovecraftian literary tradition\n"
+        "- Vague concepts like 'fear of the unknown' without a specific entity or work anchor\n\n"
+        "Each topic must have enough real literary, philosophical, or scientific depth for 12,000 words "
+        "and be suitable for sleep-style listening — scholarly, atmospheric, unsettling.\n\n"
         "Output only valid JSON."
     )
 
     user = (
-        f"Trending topic: {trending_topic}\n\n"
+        f"Generate 12 original topic ideas for a Lovecraftian cosmic horror sleep documentary channel.\n\n"
         f"{existing_text}"
-        f"Generate ONE original idea inspired by this topic but with a fresh angle.\n\n"
+        f"Every topic must be strictly within Lovecraftian cosmic horror literature — "
+        f"specific entities, specific works, specific authors from the tradition, "
+        f"or real science that connects directly to a named Lovecraft entity.\n\n"
         f"Return JSON:\n"
         f'{{\n'
-        f'  "title_seed": "Working title for this original idea",\n'
-        f'  "entity": "Lovecraft entity or cosmic horror concept",\n'
-        f'  "core_argument": "One sentence — the specific argument this documentary makes",\n'
-        f'  "real_anchor": "The specific real-world data point or phenomenon that grounds this",\n'
-        f'  "why_different": "One sentence — what makes this angle fresh vs what already exists",\n'
-        f'  "depth_rating": 5,\n'
-        f'  "sleep_fit": "high"\n'
+        f'  "trending_notes": "2-3 sentences on what is currently resonating in the Lovecraftian cosmic horror niche",\n'
+        f'  "topics": [\n'
+        f'    {{\n'
+        f'      "title_seed": "Working topic title (not final)",\n'
+        f'      "entity": "Specific Lovecraft entity or named cosmic horror concept",\n'
+        f'      "core_argument": "One sentence — the specific argument this documentary makes. No colon.",\n'
+        f'      "why_now": "One sentence — why this angle is underserved in the Lovecraftian niche",\n'
+        f'      "depth_rating": 1-5,\n'
+        f'      "sleep_fit": "high | medium | low"\n'
+        f'    }}\n'
+        f'  ]\n'
         f'}}\n\n'
-        f"Return only the JSON object."
+        f"Generate exactly 12 topics. All must be strictly Lovecraftian cosmic horror literature. "
+        f"Prioritise high depth_rating and high sleep_fit. Return only the JSON object."
     )
 
     msg = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=600,
+        model="claude-sonnet-4-6",
+        max_tokens=3000,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
@@ -816,36 +736,40 @@ def generate_original_idea(trending_topic: str, api_key: str, existing_titles: l
         return json.loads(raw[start:end])
     except Exception:
         return {
-            "title_seed": f"The Hidden Truth Behind {trending_topic}",
-            "entity": trending_topic,
-            "core_argument": "Real scientific anomalies suggest the horror Lovecraft described may have a factual basis",
-            "real_anchor": "NOAA deep ocean recordings with no identified source",
-            "why_different": "Focuses on the real data rather than the mythology",
-            "depth_rating": 5,
-            "sleep_fit": "high"
+            "trending_notes": "Search completed. Generating topics based on current cosmic horror landscape.",
+            "topics": [
+                {
+                    "title_seed": "The Real Science Behind Lovecraft's Dreaming God",
+                    "entity": "Cthulhu / R'lyeh",
+                    "core_argument": "NOAA's unidentified deep ocean recordings suggest something biological and massive exists at depths no expedition has reached",
+                    "why_now": "The Bloop anniversary and new deep sea survey data make this timely",
+                    "depth_rating": 5,
+                    "sleep_fit": "high"
+                }
+            ]
         }
-
-
-def discover_topics(api_key: str, existing_titles: list = None) -> dict:
-    """Legacy wrapper — kept for compatibility."""
-    topics = get_trending_topics(api_key)
-    return {"topics": [{"title_seed": t["topic"], "entity": t["topic"],
-                        "core_argument": "", "why_now": "", "depth_rating": 4,
-                        "sleep_fit": "high"} for t in topics]}
 
 
 def generate_title_formats(topic: dict, api_key: str) -> list:
     """
-    Takes a selected topic and generates title variations
-    in multiple formats suited to this channel.
+    Takes a selected topic and generates 10 clickbait title options for a
+    cosmic horror sleep channel. Returns a flat list of title strings.
     """
     client = anthropic.Anthropic(api_key=api_key.strip())
 
     system = (
-        "You generate YouTube title variations for a cosmic horror sleep documentary channel. "
-        "Titles must be analytically defensible — never fabricated. "
-        "They should create dread through implication, not through exaggeration. "
-        "Never use: 'what if I told you', 'you won't believe', 'shocking truth', 'dark secret'.\n\n"
+        "You write YouTube titles for a cosmic horror Lovecraftian sleep documentary channel. "
+        "Study the title style of sleep content channels — brief, intriguing, fear-inducing, "
+        "curiosity-driven. Titles that make someone lying in the dark immediately press play.\n\n"
+        "STRICT RULES for every title:\n"
+        "- Maximum 80 characters — count carefully, reject any title over 80 characters\n"
+        "- No colons anywhere in the title\n"
+        "- No subtitles or secondary clauses separated by any punctuation\n"
+        "- Clickbait that is analytically defensible — never fabricated claims\n"
+        "- Dread through implication, never exaggeration\n"
+        "- Never use: 'what if I told you', 'you won't believe', 'shocking truth', 'dark secret', "
+        "'the truth about', 'what they don't want you to know'\n"
+        "- Vary the grammatical structure across all 10 — no two titles should open the same way\n\n"
         "Output only valid JSON."
     )
 
@@ -853,23 +777,18 @@ def generate_title_formats(topic: dict, api_key: str) -> list:
         f"Topic: {topic.get('title_seed', '')}\n"
         f"Core argument: {topic.get('core_argument', '')}\n"
         f"Entity: {topic.get('entity', '')}\n\n"
-        f"Generate 2 title variations for each of these 5 formats:\n\n"
-        f"1. ARCHIVAL REVELATION — framed as recovered or suppressed documentation\n"
-        f"2. SCIENTIFIC ANOMALY — the real data is the horror\n"
-        f"3. INSTITUTIONAL QUESTION — something official that was never answered\n"
-        f"4. PHILOSOPHICAL IMPLICATION — what this means for how we understand existence\n"
-        f"5. DIRECT ARGUMENT — a specific claim that sounds outrageous but is defensible\n\n"
-        f"Return JSON array:\n"
-        f'[\n'
-        f'  {{"format": "Archival Revelation", "titles": ["Title 1", "Title 2"]}},\n'
-        f'  ...\n'
-        f']\n\n'
-        f"Return only the JSON array."
+        f"Generate exactly 10 title options for this topic.\n"
+        f"All must be under 80 characters. No colons. Varied structures.\n"
+        f"Think like a sleep content creator — brief, eerie, irresistible.\n\n"
+        f"Return a JSON array of exactly 10 strings:\n"
+        f'["Title 1", "Title 2", "Title 3", "Title 4", "Title 5", '
+        f'"Title 6", "Title 7", "Title 8", "Title 9", "Title 10"]\n\n'
+        f"Return only the JSON array, nothing else."
     )
 
     msg = client.messages.create(
-        model="claude-haiku-4-5",
-        max_tokens=1000,
+        model="claude-haiku-4-5-20251001",
+        max_tokens=800,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
@@ -878,6 +797,17 @@ def generate_title_formats(topic: dict, api_key: str) -> list:
     try:
         start = raw.index("[")
         end = raw.rindex("]") + 1
-        return json.loads(raw[start:end])
+        titles = json.loads(raw[start:end])
+        # Ensure it's a flat list of strings
+        if titles and isinstance(titles[0], str):
+            return titles
+        # Fallback if model returns old grouped format
+        flat = []
+        for item in titles:
+            if isinstance(item, dict):
+                flat.extend(item.get("titles", []))
+            elif isinstance(item, str):
+                flat.append(item)
+        return flat[:10] if flat else [topic.get("title_seed", "")]
     except Exception:
-        return [{"format": "Direct Argument", "titles": [topic.get("title_seed", "")]}]
+        return [topic.get("title_seed", "")]
