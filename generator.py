@@ -952,8 +952,15 @@ def generate_ancient_outline(title: str, protocol: dict, api_key: str) -> dict:
 
     system = (
         "You are an ancient history sleep documentary script architect. "
-        "You produce custom 18-section outlines tailored to each topic's natural archaeological arc. "
-        "The structure must emerge organically from the specific civilisation and anchor — not a generic template. "
+        "You produce custom 18-section outlines that deliver exactly what the video title promises. "
+        "CRITICAL RULE: The title is the subject. The anchor is the entry point into that subject. "
+        "The outline must be about the TITLE TOPIC from section 1 to section 18. "
+        "The anchor is a specific verifiable fact that opens the argument — it is not the argument itself. "
+        "If the title is about how the Anunnaki shaped religion, every section explores that claim "
+        "through different dimensions — origins, mechanisms, evidence, competing views, legacy. "
+        "The anchor fact appears in section 1 as the hook, then the script expands outward to deliver the full topic. "
+        "A viewer who clicks this title must feel, from section 1 to section 18, that they are getting exactly "
+        "what they came for — not a tangent, not a deep-dive into a related document, not a history of something adjacent. "
         "Target: 15,000 words, ~600-900 words per section. "
         "Audience: ages 45-65+, 83% male, intellectual sleep content. "
         "Output only valid JSON."
@@ -970,28 +977,32 @@ Protocol:
 - Structure: {protocol.get('para', '')}
 - Constraint: {protocol.get('constraint', '')}
 
-Generate a custom 18-section outline following this narrative arc:
-Section 1: The Invitation (atmospheric topic reveal + warm welcome + sensory grounding) — 600 words
-Sections 2-4: The Forgotten World (deep time context, world before the civilisation) — 600w each
-Sections 5-7: The Emergence (earliest archaeological evidence, first discoveries) — 600w each
-Sections 8-11: The Golden Age (civilisation at its peak, daily life, achievements) — 600w each
-Sections 12-14: The Hidden Dimensions (alignments, symbolism, unexplained techniques) — 600w each
-Sections 15-16: The Great Questions (competing theories, unresolved mysteries) — 600w each
-Section 17: The Legacy (memory preservation, modern rediscovery, continuity) — 600 words
-Section 18: The Stillness (peaceful closing, return to present, acceptance of mystery) — 600 words
+THE SUBJECT OF THIS SCRIPT IS THE TITLE: "{title}"
+The anchor is the real verifiable fact that opens the argument. Once introduced, the script must pursue the title's argument across all 18 sections.
 
-Each section heading must be specific to THIS civilisation/anchor — not generic labels.
+Generate a custom 18-section outline. The narrative arc must serve the title:
+Section 1: The Invitation — open on the anchor fact, establish the central claim of the title, welcome the listener
+Sections 2-4: Origins — the deep historical foundation of the claim (who, what, when, where the story begins)
+Sections 5-7: The Mechanism — how the thing the title describes actually operated (the specific process, system, or structure)
+Sections 8-11: The Evidence — specific documented examples of the claim playing out across history and civilisations
+Sections 12-14: The Hidden Layers — what modern research, archaeology, or comparative religion reveals beneath the surface
+Sections 15-16: The Competing Views — scholarly debate, alternative interpretations, what mainstream and heterodox positions each argue
+Section 17: The Legacy — how this dynamic persists or transformed into the present day
+Section 18: The Stillness — peaceful meditation on what remains unknown, return to the present moment
+
+Every section heading must be specific to THIS topic and anchor — not generic labels.
+Every section must advance the argument the title makes — not drift into adjacent history.
 
 Return JSON:
 {{
-  "section_1": {{"heading": "...", "summary": "2-3 sentences on what this section establishes and how it opens"}},
+  "section_1": {{"heading": "...", "summary": "2-3 sentences: what anchor fact opens this, what claim it establishes"}},
   "sections": [
-    {{"num": 2, "heading": "...", "bullets": ["what this section covers", "specific argument or detail", "how it connects to the anchor"]}},
-    {{"num": 3, ...}},
-    ...continue for all 18 sections...
+    {{"num": 2, "heading": "...", "bullets": ["specific content this section covers", "how it advances the title's argument", "anchor or evidence used"]}},
+    {{"num": 3, "heading": "...", "bullets": [...]}},
+    ...all 18 sections...
   ],
   "total_sections": 18,
-  "key_anchor_fact": "The one real verifiable fact from the anchor this script builds from"
+  "central_argument": "One sentence — the specific claim this script makes about the title topic"
 }}
 
 Include all 18 sections in the "sections" array (nums 1-18). Return only the JSON object."""
