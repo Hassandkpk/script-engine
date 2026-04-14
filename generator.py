@@ -725,69 +725,54 @@ def revise_section_from_audit(section_text: str, audit: dict, title: str, api_ke
 
 
 # =====================================================================
-# ANCIENT STORIES NICHE
+# ANCIENT STORIES NICHE — Divergence Protocol system
+# Mirrors the Cosmic Horror architecture exactly:
+# anchor catalogue → protocol generation → outline → section writing
 # =====================================================================
 
 def apply_ancient_voice_filter(raw_script: str, title: str, api_key: str) -> str:
-    """Voice filter for Ancient Stories niche — meditative ancient history documentary."""
+    """Voice filter for Ancient Stories — meditative ancient history documentary."""
     system_prompt = (
         "You are a senior script editor for a meditative ancient history sleep documentary channel. "
-        "Your audience is ages 45-65+, 83% male, seeking intellectual sleep content — they want to "
-        "lie in the dark and be guided through deep time by a wise, patient narrator.\n\n"
+        "Your audience is ages 45-65+, 83% male, seeking intellectual sleep content.\n\n"
 
         "THE NARRATOR VOICE\n"
         "A patient, philosophical guide who treats ancient mysteries with wonder, not certainty. "
-        "Speaks with quiet reverence for the passage of deep time. "
-        "Documentary sensibility — factual weight combined with meditative warmth. "
-        "Intimate conversational tone — speaking directly to one listener, not a crowd. "
-        "Like a wise elder speaking beside a campfire under ancient stars.\n\n"
+        "Documentary sensibility — factual weight with meditative warmth. "
+        "Intimate conversational tone. Like a wise elder at a campfire under ancient stars. "
+        "Speak directly to one listener, not a crowd.\n\n"
 
         "VOICE PRINCIPLES\n"
-        "Meditative pacing: slow, deliberate, smooth transitions that carry the listener forward. "
-        "Confidence balance: 60% confident statements (when evidence supports), "
-        "30% measured uncertainty (competing theories), 10% open speculation (philosophical wondering). "
-        "Concrete detail: include measurements, dates, named sites, named scholars. "
-        "Sensory grounding: what it would feel, sound, smell, look like. "
-        "Second-person address ('you') and first-person plural ('we') for intimacy. "
-        "Vary speculation markers: 'perhaps', 'it's possible that', 'one interpretation suggests', "
-        "'this might indicate', 'scholars debate whether' — never repeat the same one consecutively.\n\n"
+        "Meditative pacing: slow, deliberate, smooth. "
+        "Confidence: 60% confident statements (evidence-backed), 30% measured uncertainty, 10% open speculation. "
+        "Concrete detail: measurements, dates, named sites, scholars. "
+        "Sensory grounding: feel, sound, smell, texture. "
+        "Second-person ('you') and first-person plural ('we') for intimacy. "
+        "Vary speculation markers — 'perhaps', 'it's possible that', 'one interpretation suggests', "
+        "'this might indicate', 'scholars debate whether' — never repeat the same consecutively.\n\n"
 
-        "SENTENCE AND PARAGRAPH RHYTHM\n"
-        "Mix long meditative paragraphs (8-10 sentences) with short grounding paragraphs (1-2 sentences). "
-        "Short sentences create conversational pauses and intimacy. "
-        "Single-sentence paragraphs are allowed for breath pauses, temporal transitions, rhythm breaks. "
-        "Vary paragraph openings — time markers, place markers, subject-first, action-first, "
-        "contemplative, invitations, participial, questions. "
+        "PARAGRAPH RHYTHM\n"
+        "Mix long meditative paragraphs with short grounding paragraphs (1-2 sentences). "
+        "Single-sentence paragraphs allowed for breath pauses and rhythm breaks. "
         "Never start 3 consecutive sentences with the same pattern.\n\n"
 
-        "PUNCTUATION FOR VOICEOVER\n"
-        "This script is read by AI voiceover. Commas create fast pauses. Ellipses (...) create slow pauses. "
-        "Use 70% commas / 20% ellipses / 10% periods for breath pacing. "
-        "Maximum 3-4 ellipses per paragraph — not every pause.\n\n"
+        "PUNCTUATION FOR AI VOICEOVER\n"
+        "Commas: 70% of pauses (fast). Ellipses: 20% (slow — philosophical, temporal, parallel). "
+        "Periods: 10% (strong stops). Max 3-4 ellipses per paragraph.\n\n"
 
-        "STRUCTURAL BANS — never under any circumstances:\n"
-        "- Academic/scholarly distance ('one might observe', 'it has been postulated')\n"
-        "- Journalistic urgency ('Breaking discovery!', 'Shocking revelation!')\n"
+        "STRUCTURAL BANS\n"
+        "- Academic distance ('one might observe', 'it has been postulated')\n"
+        "- Journalistic urgency ('shocking', 'breaking discovery')\n"
         "- Melodrama or sensationalism\n"
-        "- Lists of facts without narrative flow\n"
-        "- Definitive claims about contested archaeological theories\n"
-        "- Anything that raises heart rate, creates tension, or disturbs peace\n"
-        "- Modern cultural references that break immersion in deep time\n\n"
+        "- Facts as lists without narrative flow\n"
+        "- Definitive claims about contested archaeology\n"
+        "- Anything that raises heart rate or disturbs peace\n\n"
 
         "WHAT TO PRESERVE\n"
-        "Preserve every measurement, date, named site, scholar, and archaeological fact. "
-        "Preserve the section's narrative arc and thematic content. "
-        "You are editing the voice, not rewriting the content.\n\n"
+        "Every measurement, date, named site, scholar, archaeological fact. "
+        "The section's narrative arc. You are editing voice, not rewriting content.\n\n"
 
-        "Output only the rewritten script section. No preamble, no notes, no commentary."
-    )
-
-    user_prompt = (
-        f"Video title: {title}\n\n"
-        f"Raw section draft to rewrite:\n\n"
-        f"{raw_script}\n\n"
-        f"Rewrite applying all voice principles. The narrator speaks with the patience of geological time. "
-        f"Output only the finished section."
+        "Output only the rewritten text. No preamble, no commentary."
     )
 
     client = anthropic.Anthropic(api_key=api_key.strip())
@@ -795,93 +780,221 @@ def apply_ancient_voice_filter(raw_script: str, title: str, api_key: str) -> str
         model="claude-sonnet-4-6",
         max_tokens=4000,
         system=system_prompt,
-        messages=[{"role": "user", "content": user_prompt}]
+        messages=[{"role": "user", "content":
+            f"Title: {title}\n\nRaw draft:\n\n{raw_script}\n\n"
+            f"Rewrite applying all voice principles. Output only the finished text."}]
     )
     return message.content[0].text
 
 
-def generate_ancient_outline(topic: str, api_key: str) -> dict:
+def generate_ancient_protocol_from_title(title: str, banned: list, api_key: str,
+                                          recent_fingerprints: list = None) -> dict:
     """
-    Generate a custom 18-section outline for an ancient history sleep documentary.
-    Returns structured outline tailored to the specific topic's natural narrative arc.
+    Generate a Divergence Protocol for the Ancient Stories niche.
+    Uses ANCIENT_ANCHORS catalogue — same architecture as generate_protocol_from_title.
+    """
+    from data import ANCIENT_ANCHORS
+
+    banned_capped = banned[:20] if banned else []
+    banned_text = "\n".join([f"- [{b['type']}] {b['move'][:80]}" for b in banned_capped]) if banned_capped else "None yet."
+
+    # Build structural history
+    history_text = ""
+    used_anchors = []
+    if recent_fingerprints:
+        history_lines = []
+        for i, fp in enumerate(recent_fingerprints):
+            parts = []
+            if fp.get("anchor"): parts.append(f"anchor: {fp['anchor'][:50]}")
+            if fp.get("pov"): parts.append(f"POV: {fp['pov']}")
+            if fp.get("distance"): parts.append(f"distance: {fp['distance']}")
+            if fp.get("para"): parts.append(f"para: {fp['para']}")
+            if fp.get("constraint"): parts.append(f"constraint: {fp['constraint'][:40]}")
+            if parts:
+                history_lines.append(f"Script {i+1}: {' | '.join(parts)}")
+                if fp.get("anchor"):
+                    used_anchors.append(fp["anchor"][:50])
+        if history_lines:
+            history_text = (
+                "STRUCTURAL HISTORY — do not repeat any anchor, POV, distance, "
+                "paragraph structure, or constraint from this list:\n"
+                + "\n".join(history_lines[:10]) + "\n\n"
+            )
+
+    # Build anchor catalogue
+    anchor_catalogue = []
+    for civ, anchors in ANCIENT_ANCHORS.items():
+        anchor_catalogue.append(f"\n{civ}:")
+        for i, a in enumerate(anchors):
+            recently_used = any(a["anchor"][:60] in used for used in used_anchors)
+            flag = " [RECENTLY USED — avoid]" if recently_used else ""
+            short = a["anchor"][:100].rstrip()
+            anchor_catalogue.append(f"  {i+1}. [{a['domain']}]{flag} {short}")
+    anchor_list = "\n".join(anchor_catalogue)
+
+    system = (
+        "You are an expert ancient history YouTube script architect specialising in meditative "
+        "sleep documentary content for ages 45-65+.\n\n"
+        "You generate divergence protocols — pre-script briefs ensuring each script is structurally "
+        "unique and grounded in a specific real verifiable archaeological or historical fact.\n\n"
+        "ANCHOR RULE: Choose ONLY from the provided Ancient Anchor Catalogue. "
+        "Do not invent anchors. Every anchor is real, verifiable, and immediately graspable in the dark. "
+        "If the title references a specific civilisation or site, prioritise that civilisation's anchors. "
+        "Avoid anchors flagged [RECENTLY USED].\n\n"
+        "STRUCTURAL ROTATION RULE: Choose POV, distance, para structure, and constraint "
+        "not appearing in recent scripts. Every script must feel structurally different.\n\n"
+        "Output only valid JSON."
+    )
+
+    user = (
+        f'Video title: "{title}"\n\n'
+        f"{history_text}"
+        f"Manual banned structural moves:\n{banned_text}\n\n"
+        f"ANCIENT ANCHOR CATALOGUE (choose from this list only):\n{anchor_list}\n\n"
+        f"Return JSON:\n"
+        f'{{\n'
+        f'  "civilisation": "Ancient civilisation or site this script centres on",\n'
+        f'  "anchor": "Full anchor text copied exactly from the catalogue",\n'
+        f'  "anchor_domain": "Domain code from the catalogue",\n'
+        f'  "angle": "One sentence — the specific lens making this anchor feel profound and immediate in the dark. No colon.",\n'
+        f'  "pov": "One of: second person | first person plural (we) | third person omniscient restrained | false documentary (field notes) | nested narration | no narrator (pure phenomena) | first person singular dissolving into report | second person plural",\n'
+        f'  "distance": "One of: maximum intimacy | forensic distance | historical distance | dissolving distance | unreliable proximity | absolute removal",\n'
+        f'  "para": "One of: paragraphs compress as script progresses | alternating long/short rhythm | single unbroken block | each paragraph shorter than previous | fragments only | normal prose fragmenting in final third | paragraphs expand as script progresses | two sentences per paragraph maximum",\n'
+        f'  "constraint": "One specific hard constraint not in structural history above",\n'
+        f'  "reasoning": "One sentence why this anchor serves this title and this audience"\n'
+        f'}}\n\nReturn only the JSON object.'
+    )
+
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=1200,
+            system=system,
+            messages=[{"role": "user", "content": user}]
+        )
+        raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+    except Exception as e:
+        return {
+            "civilisation": "Göbekli Tepe / Pre-Agricultural Builders",
+            "anchor": "Göbekli Tepe (9600 BCE) — built 6,000 years before Stonehenge by hunter-gatherers with no pottery, no writing, no agriculture. The site was deliberately buried around 8000 BCE. No one knows why.",
+            "anchor_domain": "megalithic_construction",
+            "angle": "The oldest monumental structure on Earth was built by people who had no city, no grain store, no writing — and then they buried it on purpose",
+            "pov": "third person omniscient restrained",
+            "distance": "historical distance",
+            "para": "paragraphs compress as script progresses",
+            "constraint": "No sentence may exceed 20 words",
+            "reasoning": f"API ERROR — {type(e).__name__}: {str(e)[:200]}"
+        }
+
+    try:
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        return json.loads(raw[start:end])
+    except Exception:
+        return {
+            "civilisation": "Göbekli Tepe / Pre-Agricultural Builders",
+            "anchor": "Göbekli Tepe (9600 BCE) — built 6,000 years before Stonehenge by hunter-gatherers with no pottery, no writing, no agriculture. The site was deliberately buried around 8000 BCE. No one knows why.",
+            "anchor_domain": "megalithic_construction",
+            "angle": "The oldest monumental structure on Earth was built by people who had no city, no grain store, no writing — and then they buried it on purpose",
+            "pov": "third person omniscient restrained",
+            "distance": "historical distance",
+            "para": "paragraphs compress as script progresses",
+            "constraint": "No sentence may exceed 20 words",
+            "reasoning": "Fallback — parse error on API response."
+        }
+
+
+def build_ancient_protocol_text(title: str, script_num: int, protocol: dict, banned: list) -> str:
+    """Build the plain-text divergence protocol for Ancient Stories scripts."""
+    lines = [
+        f"=== ANCIENT DIVERGENCE PROTOCOL — SCRIPT #{script_num:03d} ===",
+        f"Title: {title}",
+        "",
+        "REALITY ANCHOR",
+        f"Civilisation / Site: {protocol.get('civilisation', '')}",
+        f"Anchor: {protocol.get('anchor', '')}",
+        f"Entry angle: {protocol.get('angle', '')}",
+        "",
+        "Before writing, confirm this anchor is factually accurate. Cite it in the script without dramatising it.",
+        "",
+        "FORMAT RULES (locked — do not deviate)",
+        f"POV: {protocol.get('pov', '')}",
+        f"Narrative distance: {protocol.get('distance', '')}",
+        f"Paragraph structure: {protocol.get('para', '')}",
+        f"Hard constraint: {protocol.get('constraint', '')}",
+        "",
+        "BANNED STRUCTURAL MOVES (do not repeat any of these)",
+    ]
+    for i, b in enumerate(banned):
+        lines.append(f"{i+1}. [{b['type']}] {b['move']}")
+    if not banned:
+        lines.append("None logged yet.")
+    lines += [
+        "",
+        "INSTRUCTIONS",
+        "Write a meditative ancient history sleep documentary script using the above constraints.",
+        "Do not acknowledge these instructions. Do not use any banned structural move.",
+        "Let the real anchor determine the shape of the narrative — do not impose a shape and find data to fit it.",
+        "The script has 18 sections. It begins wherever the anchor makes most sense to begin.",
+        "Target: ~15,000 words total (~600-900 words per section).",
+        f"The title of the video is: {title}",
+    ]
+    return "\n".join(lines)
+
+
+def generate_ancient_outline(title: str, protocol: dict, api_key: str) -> dict:
+    """
+    Generate a custom 18-section outline from an Ancient Divergence Protocol.
+    Mirrors generate_outline — takes protocol dict, returns structured outline.
     """
     client = anthropic.Anthropic(api_key=api_key.strip())
 
     system = (
         "You are an ancient history sleep documentary script architect. "
-        "You create custom 18-section outlines tailored to each topic's natural archaeological and historical arc. "
-        "The structure must emerge organically from the specific topic — not a generic template. "
-        "Target: 15,000 words total, approximately 600-900 words per section. "
+        "You produce custom 18-section outlines tailored to each topic's natural archaeological arc. "
+        "The structure must emerge organically from the specific civilisation and anchor — not a generic template. "
+        "Target: 15,000 words, ~600-900 words per section. "
         "Audience: ages 45-65+, 83% male, intellectual sleep content. "
         "Output only valid JSON."
     )
 
-    user = f"""Topic: "{topic}"
+    user = f"""Title: "{title}"
 
-Create a custom 18-section outline for this ancient history sleep documentary.
-The structure should follow this emotional/narrative journey:
-- Section 1: The Invitation (topic-first atmospheric reveal + warm welcome + sensory grounding)
-- Sections 2-4: The Forgotten World (deep time context, world before the civilization/monument)
-- Sections 5-7: The Emergence (earliest archaeological evidence, first discoveries)
-- Sections 8-11: The Golden Age (civilization/monument at its peak, daily life, achievements)
-- Sections 12-14: The Hidden Dimensions (astronomical alignments, symbolism, lost technologies)
-- Sections 15-16: The Great Questions (competing theories, unresolved mysteries)
-- Section 17: The Legacy (how memory survived, modern rediscovery)
-- Section 18: The Stillness (peaceful closing, return to present, acceptance of mystery)
+Protocol:
+- Civilisation/Site: {protocol.get('civilisation', '')}
+- Anchor: {protocol.get('anchor', '')}
+- Angle: {protocol.get('angle', '')}
+- POV: {protocol.get('pov', '')}
+- Distance: {protocol.get('distance', '')}
+- Structure: {protocol.get('para', '')}
+- Constraint: {protocol.get('constraint', '')}
 
-Each section heading must be specific to THIS topic — not generic labels.
+Generate a custom 18-section outline following this narrative arc:
+Section 1: The Invitation (atmospheric topic reveal + warm welcome + sensory grounding) — 600 words
+Sections 2-4: The Forgotten World (deep time context, world before the civilisation) — 600w each
+Sections 5-7: The Emergence (earliest archaeological evidence, first discoveries) — 600w each
+Sections 8-11: The Golden Age (civilisation at its peak, daily life, achievements) — 600w each
+Sections 12-14: The Hidden Dimensions (alignments, symbolism, unexplained techniques) — 600w each
+Sections 15-16: The Great Questions (competing theories, unresolved mysteries) — 600w each
+Section 17: The Legacy (memory preservation, modern rediscovery, continuity) — 600 words
+Section 18: The Stillness (peaceful closing, return to present, acceptance of mystery) — 600 words
+
+Each section heading must be specific to THIS civilisation/anchor — not generic labels.
 
 Return JSON:
 {{
-  "topic": "{topic}",
-  "section_1": {{
-    "heading": "The Invitation — [topic-specific subtitle]",
-    "theme": "Atmospheric topic reveal + welcome + sensory grounding",
-    "focus": ["immediate topic hook", "warm greeting", "central mystery", "sensory grounding"]
-  }},
-  "sections_2_4": [
-    {{"num": 2, "heading": "[topic-specific heading]", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 3, "heading": "[topic-specific heading]", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 4, "heading": "[topic-specific heading]", "theme": "...", "focus": ["...", "..."]}}
+  "section_1": {{"heading": "...", "summary": "2-3 sentences on what this section establishes and how it opens"}},
+  "sections": [
+    {{"num": 2, "heading": "...", "bullets": ["what this section covers", "specific argument or detail", "how it connects to the anchor"]}},
+    {{"num": 3, ...}},
+    ...continue for all 18 sections...
   ],
-  "sections_5_7": [
-    {{"num": 5, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 6, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 7, "heading": "...", "theme": "...", "focus": ["...", "..."]}}
-  ],
-  "sections_8_11": [
-    {{"num": 8, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 9, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 10, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 11, "heading": "...", "theme": "...", "focus": ["...", "..."]}}
-  ],
-  "sections_12_14": [
-    {{"num": 12, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 13, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 14, "heading": "...", "theme": "...", "focus": ["...", "..."]}}
-  ],
-  "sections_15_16": [
-    {{"num": 15, "heading": "...", "theme": "...", "focus": ["...", "..."]}},
-    {{"num": 16, "heading": "...", "theme": "...", "focus": ["...", "..."]}}
-  ],
-  "section_17": {{
-    "num": 17,
-    "heading": "The Legacy — [topic-specific subtitle]",
-    "theme": "Memory preservation, modern rediscovery, continuity",
-    "focus": ["how knowledge survived", "modern archaeological work", "cycles of remembering"]
-  }},
-  "section_18": {{
-    "num": 18,
-    "heading": "The Stillness",
-    "theme": "Peaceful closing, return to present, acceptance of mystery",
-    "focus": ["return to present moment", "elements unchanged", "acceptance of mystery"]
-  }},
   "total_sections": 18,
-  "mini_story_placements": ["Section 6 or 7", "Section 9 or 10"],
-  "key_themes": ["theme 1", "theme 2", "theme 3"]
+  "key_anchor_fact": "The one real verifiable fact from the anchor this script builds from"
 }}
 
-Return only the JSON object."""
+Include all 18 sections in the "sections" array (nums 1-18). Return only the JSON object."""
 
     msg = client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -895,216 +1008,146 @@ Return only the JSON object."""
         end = raw.rindex("}") + 1
         return json.loads(raw[start:end])
     except Exception as e:
-        return {"topic": topic, "total_sections": 18, "error": str(e), "raw": raw[:300]}
+        return {"section_1": {"heading": "The Invitation", "summary": f"Parse error: {e}"}, "sections": [], "total_sections": 18}
 
 
-def _get_ancient_section_brief(outline: dict, section_num: int) -> dict:
-    """Extract heading and focus points for a given section number from the outline."""
+def generate_ancient_section(title: str, protocol_text: str, outline: dict, section_num: int,
+                               approved_parts: list, api_key: str) -> str:
+    """
+    Generate one section of an ancient history sleep documentary script.
+    Mirrors generate_body_section — uses protocol_text and outline.
+    """
+    sections = outline.get("sections", [])
+    sec_data = next((s for s in sections if s.get("num") == section_num), {})
+    heading = sec_data.get("heading", f"Section {section_num}")
+    bullets = sec_data.get("bullets", [])
+    section_brief = f"Heading: {heading}\nCover: {', '.join(bullets)}" if bullets else f"Heading: {heading}"
+
+    # Special instructions per section group
     if section_num == 1:
-        return outline.get("section_1", {})
-    elif section_num == 17:
-        return outline.get("section_17", {})
-    elif section_num == 18:
-        return outline.get("section_18", {})
-    elif 2 <= section_num <= 4:
-        for s in outline.get("sections_2_4", []):
-            if s.get("num") == section_num:
-                return s
-    elif 5 <= section_num <= 7:
-        for s in outline.get("sections_5_7", []):
-            if s.get("num") == section_num:
-                return s
-    elif 8 <= section_num <= 11:
-        for s in outline.get("sections_8_11", []):
-            if s.get("num") == section_num:
-                return s
-    elif 12 <= section_num <= 14:
-        for s in outline.get("sections_12_14", []):
-            if s.get("num") == section_num:
-                return s
-    elif 15 <= section_num <= 16:
-        for s in outline.get("sections_15_16", []):
-            if s.get("num") == section_num:
-                return s
-    return {"heading": f"Section {section_num}", "theme": "", "focus": []}
-
-
-def generate_ancient_section(topic: str, title: str, outline: dict, section_num: int,
-                               approved_sections: list, api_key: str) -> str:
-    """Generate one section of an ancient history sleep documentary script."""
-    client = anthropic.Anthropic(api_key=api_key.strip())
-
-    sec_brief = _get_ancient_section_brief(outline, section_num)
-    heading = sec_brief.get("heading", f"Section {section_num}")
-    theme = sec_brief.get("theme", "")
-    focus_points = sec_brief.get("focus", [])
-    focus_text = "\n".join([f"- {f}" for f in focus_points]) if focus_points else ""
-
-    # Determine word target and special instructions by section group
-    if section_num == 1:
-        word_target = "600 words"
+        section_brief = outline.get("section_1", {}).get("summary", section_brief)
         special = (
-            "SECTION 1 STRUCTURE — follow this order:\n"
-            "PART A: Open immediately with evocative content establishing the topic. "
-            "Hook intellectual curiosity in the first 2-4 sentences. No greeting yet.\n"
-            "PART B: Greet the listener warmly. Acknowledge it might be late. Express gratitude.\n"
-            "PART C: Expand on what makes this topic remarkable. Present the central mystery. "
-            "Show mainstream interpretation alongside alternative interpretation.\n"
-            "PART D: Clarify that settling debates is not the goal — we're here to explore.\n"
-            "PART E: Offer a breath pause. Ask where they're listening from. Invite physical relaxation.\n"
-            "PART F: Brief, grateful request for likes/subscribes.\n"
-            "PART G: Extended atmospheric/philosophical passage bridging to Section 2."
+            "SECTION 1 — THE INVITATION:\n"
+            "Open immediately on the anchor fact — name it in the first two sentences. "
+            "No atmospheric throat-clearing. The listener clicked for a reason — confirm they are in the right place.\n"
+            "Then: warm greeting, acknowledgment it's late, gratitude for their presence.\n"
+            "Then: expand on the central mystery, mainstream vs alternative interpretation.\n"
+            "Then: breath pause, ask where they're listening from, invite relaxation.\n"
+            "Then: brief grateful request for likes/subscribes.\n"
+            "Then: extended atmospheric bridge into Section 2."
         )
     elif section_num == 18:
-        word_target = "600 words"
         special = (
             "SECTION 18 — THE STILLNESS:\n"
             "Return listener gently to present moment. "
-            "Reflect on elements that remain unchanged (stars, stone, silence). "
-            "Express calm acceptance that some mysteries endure unsolved. "
-            "No dramatic conclusions or revelations. "
-            "Create image of continuity and cyclical time. "
-            "Final paragraph should be poetic, soft, open-ended. "
-            "End with image of peaceful ongoing existence — wind over ruins, stars watching, stone remembering."
+            "Reflect on elements unchanged since ancient times (stars, stone, silence, desert wind). "
+            "Calm acceptance that some mysteries endure. No new information. No dramatic closure. "
+            "Final paragraph: poetic, open-ended, soft. End mid-thought if appropriate."
         )
     elif section_num == 17:
-        word_target = "600 words"
         special = (
             "SECTION 17 — THE LEGACY:\n"
-            "Show how knowledge/memory was preserved (oral tradition, inscriptions, myths). "
-            "Describe modern archaeological rediscovery. "
-            "Reflect on cycles of remembering and forgetting. "
-            "Use 4-5 'even now...' or 'still today...' present-tense connections. "
-            "End by suggesting the story continues in us, the listeners."
+            "Show how knowledge survived — oral tradition, inscription, myth, rediscovery. "
+            "Describe modern archaeological work still in progress. "
+            "4-5 'even now...' / 'still today...' connections to the present. "
+            "End: the story continues in us."
         )
     elif section_num in [15, 16]:
-        word_target = "600 words"
         special = (
             "THE GREAT QUESTIONS:\n"
-            "Present multiple theories with equal weight and fairness. "
-            "Use 'some scholars believe...' / 'others suggest...' / 'a few imagine...'. "
-            "Acknowledge what we genuinely don't know. "
-            "Include 6-8 speculation markers. Use 3-4 'we may never know...' acknowledgments. "
-            "End by suggesting that mystery itself has value."
+            "Present competing theories with equal weight. "
+            "'Some scholars believe...' / 'others suggest...' / 'a few imagine...'. "
+            "Acknowledge genuine unknowns. 6-8 varied speculation markers. "
+            "End: mystery itself has value."
         )
     elif section_num in [12, 13, 14]:
-        word_target = "600 words"
         special = (
             "THE HIDDEN DIMENSIONS:\n"
-            "Reveal astronomical alignments or cosmic connections. "
-            "Explore symbolic meanings in art/architecture/mythology. "
-            "Use 'hidden', 'beneath', 'unseen', 'secret' framing. "
-            "Present alternative interpretations fairly alongside mainstream scholarship. "
-            "End with acknowledgment that some mysteries remain unsolved."
+            "Reveal astronomical alignments, symbolic meanings, unexplained engineering. "
+            "Present alternative interpretations alongside mainstream scholarship — equal weight. "
+            "End with acknowledgment of unresolved questions."
         )
     elif section_num in [8, 9, 10, 11]:
-        word_target = "600 words"
         needs_story = section_num in [9, 10]
         special = (
-            "THE GOLDEN AGE — civilization/monument at its peak:\n"
-            "Show the culture at its height. Include intimate human details (daily routines, rituals). "
-            "Describe technological/astronomical/artistic capabilities. "
-            "Use 'Imagine...' invitations 2-3 times. Balance grandeur with intimate observation. "
-            f"{'INCLUDE ONE COMPLETE MINI-STORY: named person/role, specific location, beginning-middle-end sequence, observable details and outcome.' if needs_story else ''}"
+            "THE GOLDEN AGE:\n"
+            "Civilisation at its peak. Intimate human details — daily routines, rituals, social structures. "
+            "Technological, astronomical, artistic capabilities. 2-3 'Imagine...' invitations. "
+            f"{'INCLUDE ONE MINI-STORY: named person or specific role, specific location and time, clear beginning-middle-end, observable details and outcome.' if needs_story else ''}"
         )
     elif section_num in [5, 6, 7]:
-        word_target = "600 words"
         needs_story = section_num in [6, 7]
         special = (
-            "THE EMERGENCE — earliest archaeological evidence:\n"
-            "Describe what archaeologists have found (ruins, artifacts, inscriptions, art). "
-            "Include specific dates/locations when historically accurate. "
-            "Present competing theories. Include 3-4 unanswered questions. "
-            "Include 4-5 sensory observations (texture of stone, light on carvings). "
-            f"{'INCLUDE ONE COMPLETE MINI-STORY: discovery moment or excavation scene with named person/role, specific environment, beginning-middle-end, clear outcome.' if needs_story else ''}"
+            "THE EMERGENCE:\n"
+            "Earliest archaeological evidence — ruins, artefacts, inscriptions, art. "
+            "Specific dates, locations, competing theories, 3-4 unanswered questions. "
+            "4-5 sensory observations (texture of stone, light on carvings, weight of artefact). "
+            f"{'INCLUDE ONE MINI-STORY: a specific discovery moment or excavation scene, named excavator or role, clear outcome.' if needs_story else ''}"
         )
     else:  # sections 2-4
-        word_target = "600 words"
         special = (
-            "THE FORGOTTEN WORLD — deep time context:\n"
-            "Describe the world BEFORE the civilization/monument emerged. "
-            "Climate conditions, geological/environmental forces, the 'stage' being set. "
-            "Use present tense for timeless geological processes. "
-            "Include 5-6 time markers ('when the...', 'long before...'). "
-            "Embed 4-5 sensory details. End bridging toward the emergence of civilization."
+            "THE FORGOTTEN WORLD:\n"
+            "The world BEFORE this civilisation emerged. "
+            "Climate, geology, the environmental 'stage' being set. "
+            "Present tense for timeless geological processes. "
+            "5-6 time markers ('when the...', 'long before...'). "
+            "4-5 sensory details. Bridge toward the civilisation's emergence."
         )
 
-    prior_text = ""
-    if approved_sections:
-        prior_joined = "\n\n---\n\n".join(approved_sections[-2:])
-        prior_text = (
-            f"APPROVED SECTIONS SO FAR (last 2 — maintain continuity, do not repeat):\n\n"
-            f"{prior_joined}\n\n"
-        )
+    prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
+    prior_text = f"APPROVED CONTENT SO FAR (last 2 sections — maintain continuity, do not repeat):\n{prior}\n\n" if prior else ""
 
     system = (
-        "You are a meditative ancient history narrator with a documentary sensibility — "
-        "a voice that speaks with the patience of geological time while maintaining the intellectual weight "
-        "of philosophical inquiry. You are not simply telling bedtime stories; you are inviting listeners "
-        "into a profound meditation on lost civilizations, forgotten worlds, and mysteries carved into stone.\n\n"
+        "You are a meditative ancient history narrator with a documentary sensibility. "
+        "You speak with the patience of geological time and the intellectual weight of philosophical inquiry. "
+        "You are inviting listeners into a profound meditation on lost civilisations and mysteries carved into stone.\n\n"
 
-        "VOICE CHARACTERISTICS\n"
-        "Pacing: slow, deliberate, with smooth transitions. "
-        "Tone: warm, curious wisdom mixed with humble wonder before mystery. "
-        "Intimacy: 'you' and 'we' language — inviting listeners to explore alongside you. "
-        "Think aloud, hesitate, wonder — don't perform. "
-        "Speak like a friend at bedside, not a narrator on stage.\n\n"
+        "VOICE\n"
+        "Warm, curious wisdom mixed with humble wonder. Speak directly to one listener in the dark. "
+        "Use 'you' and 'we'. Think aloud — don't perform. Like a wise elder by a campfire.\n\n"
 
         "PARAGRAPH STRUCTURE\n"
         "6-10 sentences per paragraph (150-250 words). "
-        "Mix long meditative paragraphs with short grounding paragraphs (1-2 sentences). "
-        "Single-sentence paragraphs allowed for breath pauses and rhythm breaks (3-5 per section). "
-        "Standard paragraph: sensory/atmospheric opening → historical context → factual details → "
-        "philosophical reflection → forward bridging.\n\n"
+        "Mix long meditative paragraphs with short grounding ones (1-2 sentences). "
+        "3-5 single-sentence paragraphs per section for breath and rhythm.\n\n"
 
-        "CONCRETE DETAIL REQUIREMENTS (per section)\n"
-        "Include 3-5 measurements, 2-3 material specifications, 2-3 technical processes, "
-        "4-6 specific sensory details, 1-2 dates with BCE/CE notation, 2-3 named sites/artifacts/scholars. "
-        "60% concrete facts / 30% narrative / 10% reflection.\n\n"
+        "CONCRETE DETAIL (per section minimum)\n"
+        "3-5 measurements. 2-3 material specs. 1-2 dates with BCE/CE. "
+        "4-6 sensory details. 2-3 named sites, artefacts, or scholars.\n\n"
 
-        "CONFIDENCE BALANCE\n"
-        "State archaeological facts confidently. "
-        "Use speculation markers (rotate through: 'perhaps', 'it's possible that', 'one interpretation suggests', "
-        "'this might indicate', 'scholars debate whether') — never consecutive same marker. "
-        "Maximum 1 'perhaps/maybe' per 200 words. "
-        "For every mystery, provide 2 confident facts about what we DO know.\n\n"
+        "SPECULATION BALANCE\n"
+        "60% confident facts. 30% measured uncertainty. 10% open speculation. "
+        "Rotate: 'perhaps' / 'it's possible that' / 'one interpretation suggests' / 'scholars debate whether'. "
+        "Never use the same marker twice consecutively. For every mystery: 2 confident facts.\n\n"
 
         "PUNCTUATION FOR AI VOICEOVER\n"
-        "Commas: normal grammar use (70% of pauses). "
-        "Ellipses (...): philosophical reflection, temporal shifts, parallel observations (20% of pauses, max 3-4 per paragraph). "
-        "Periods: strong stops (10%). Never use ellipses as a lazy pause substitute.\n\n"
+        "70% commas (fast pause). 20% ellipses (slow pause — max 3-4 per paragraph). 10% periods.\n\n"
 
-        "SENTENCE OPENING VARIETY — rotate through all 8 types:\n"
-        "1. Time markers: 'When the...' / 'Long before...' / 'Thousands of years ago...'\n"
-        "2. Place markers: 'Where the...' / 'Across the plain...' / 'Beneath the temple...'\n"
-        "3. Subject-first: 'The priests...' / 'Stone platforms...' / 'Evidence suggests...'\n"
-        "4. Action-first: 'Carved into...' / 'Rising from...' / 'Preserved beneath...'\n"
+        "SENTENCE OPENING VARIETY — rotate all 8 types:\n"
+        "1. Time: 'When the...' / 'Long before...' / 'Thousands of years ago...'\n"
+        "2. Place: 'Where the...' / 'Across the plain...' / 'Beneath the temple...'\n"
+        "3. Subject: 'The priests...' / 'The stones...' / 'Evidence suggests...'\n"
+        "4. Action: 'Carved into...' / 'Rising from...' / 'Preserved beneath...'\n"
         "5. Contemplative: 'Perhaps...' / 'Somewhere...' / 'Maybe...'\n"
-        "6. Invitations: 'Imagine...' / 'Picture...' / 'Consider...'\n"
-        "7. Participial: 'Standing there...' / 'Walking through...' / 'Observing the...'\n"
-        "8. Questions: 'What remained?' / 'How did they...?' / 'Why this location?'\n\n"
+        "6. Invitation: 'Imagine...' / 'Picture...' / 'Consider...'\n"
+        "7. Participial: 'Standing there...' / 'Walking through...'\n"
+        "8. Question: 'What remained?' / 'How did they...?'\n\n"
 
+        "Never start 3 consecutive sentences with the same pattern. "
         "Output only the section text — no headings, no labels, no commentary."
-    )
-
-    user = (
-        f"Ancient history documentary topic: {topic}\n"
-        f"Video title: {title}\n\n"
-        f"SECTION {section_num} OF 18\n"
-        f"Heading: {heading}\n"
-        f"Theme: {theme}\n"
-        f"Focus points:\n{focus_text}\n\n"
-        f"{prior_text}"
-        f"{special}\n\n"
-        f"Target: {word_target}. "
-        f"Output only the section text. No headings, no labels."
     )
 
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=2000,
         system=system,
-        messages=[{"role": "user", "content": user}]
+        messages=[{"role": "user", "content":
+            f"Title: {title}\n\nProtocol:\n{protocol_text}\n\n"
+            f"{prior_text}"
+            f"Write ONLY section {section_num} of 18 (~600 words).\n{section_brief}\n"
+            f"{special}\n"
+            f"Follow the protocol constraints exactly. Output only this section."
+        }]
     )
     raw = msg.content[0].text
     return apply_ancient_voice_filter(raw, title, api_key)
@@ -1112,51 +1155,30 @@ def generate_ancient_section(topic: str, title: str, outline: dict, section_num:
 
 def revise_ancient_section_from_audit(section_text: str, audit: dict, title: str, api_key: str) -> str:
     """Fix specific flagged issues in an ancient stories section without changing content."""
-    client = anthropic.Anthropic(api_key=api_key.strip())
-
     issues = []
-    for flag in audit.get("opener_flags", []):
-        issues.append(f"PARAGRAPH OPENER: {flag}")
-    for flag in audit.get("repetition_flags", []):
-        issues.append(f"WORD REPETITION: {flag}")
-    for flag in audit.get("rhythm_flags", []):
-        issues.append(f"SENTENCE RHYTHM: {flag}")
-    for flag in audit.get("outline_flags", []):
-        issues.append(f"OUTLINE ADHERENCE: {flag}")
-    for flag in audit.get("redundancy_flags", []):
-        issues.append(f"REDUNDANCY: {flag}")
+    for flag in audit.get("opener_flags", []): issues.append(f"PARAGRAPH OPENER: {flag}")
+    for flag in audit.get("repetition_flags", []): issues.append(f"WORD REPETITION: {flag}")
+    for flag in audit.get("rhythm_flags", []): issues.append(f"SENTENCE RHYTHM: {flag}")
+    for flag in audit.get("outline_flags", []): issues.append(f"OUTLINE ADHERENCE: {flag}")
+    for flag in audit.get("redundancy_flags", []): issues.append(f"REDUNDANCY: {flag}")
 
     if not issues:
         return section_text
 
-    issues_text = "\n".join([f"- {i}" for i in issues])
-
-    system = (
-        "You are a script editor for a meditative ancient history sleep documentary channel. "
-        "You fix specific flagged issues in a section of script without changing anything else. "
-        "Preserve every factual claim, measurement, date, named site, and argument. "
-        "Preserve the meditative tone and pacing. "
-        "Do not restructure the section — only fix the exact issues listed. "
-        "Output only the revised section text. No preamble, no commentary."
-    )
-
-    user = (
-        f"Video title: {title}\n\n"
-        f"Section to revise:\n\n{section_text}\n\n"
-        f"Fix ONLY these specific flagged issues:\n{issues_text}\n\n"
-        f"Rules:\n"
-        f"- Preserve all facts, measurements, dates, named sites, arguments\n"
-        f"- Preserve the meditative tone\n"
-        f"- Do not add new content\n"
-        f"- Fix only what is listed above\n\n"
-        f"Output only the revised section."
-    )
-
+    client = anthropic.Anthropic(api_key=api_key.strip())
     msg = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=4000,
-        system=system,
-        messages=[{"role": "user", "content": user}]
+        system=(
+            "You are a script editor for a meditative ancient history sleep documentary channel. "
+            "Fix only the specific flagged issues. Preserve every fact, measurement, date, named site. "
+            "Preserve the meditative tone. Do not restructure. Output only the revised section."
+        ),
+        messages=[{"role": "user", "content":
+            f"Title: {title}\n\nSection:\n\n{section_text}\n\n"
+            f"Fix ONLY these issues:\n" + "\n".join([f"- {i}" for i in issues]) +
+            "\n\nPreserve all facts, meditative tone. Output only the revised section."
+        }]
     )
     return msg.content[0].text
 

@@ -735,6 +735,250 @@ ENTITY_KNOWLEDGE = {
 }
 
 
+# ============================================================
+# ANCIENT STORIES ANCHOR TAXONOMY
+# Each civilisation/era has 5 real verifiable anchors —
+# specific archaeological facts, anomalies, or mysteries
+# that are immediately graspable in the dark.
+# Same structure as LOVECRAFT_ANCHORS.
+# ============================================================
+
+ANCIENT_ANCHORS = {
+
+    "Göbekli Tepe / Pre-Agricultural Builders": [
+        {
+            "anchor": "Göbekli Tepe (9600 BCE) — built 6,000 years before Stonehenge, 7,000 years before the wheel. The builders had no pottery, no writing, no agriculture, no city. They quarried and erected limestone pillars weighing up to 20 tonnes using only flint tools. The site was then deliberately buried — intentionally backfilled — around 8000 BCE. No one knows why.",
+            "domain": "megalithic_construction"
+        },
+        {
+            "anchor": "Animal carvings at Göbekli Tepe include species from three separate biogeographic regions: Anatolian plateau predators, Mesopotamian valley fauna, and African savanna animals. No single hunter-gatherer group had access to all three regions. Someone assembled imagery from a much wider world than any single band could have known.",
+            "domain": "iconographic_geography"
+        },
+        {
+            "anchor": "The T-pillars at Göbekli Tepe have no confirmed functional purpose. They are too tall to support a roof. They are not aligned to solstices. The largest are 5.5 metres tall and weigh 15-20 tonnes. They were carved, erected, used for an unknown purpose, then buried with fill stone. 95% of the site remains unexcavated.",
+            "domain": "megalithic_function"
+        },
+        {
+            "anchor": "Radiocarbon dating at Göbekli Tepe shows the oldest structures are the most sophisticated — larger pillars, more refined carvings, more complex enclosures. Over time, construction became smaller and simpler. This inverts every other archaeological sequence of civilizational development. Something was being remembered, not invented.",
+            "domain": "architectural_regression"
+        },
+        {
+            "anchor": "Göbekli Tepe sits at the precise centre of a 12,000-year-old ecological boundary — the exact line separating wild einkorn wheat from other grasses. Genetic studies of domestic wheat trace its origin to this specific hillside. The sanctuary was built where agriculture would begin. Whether this was intentional, symbolic, or coincidence has not been determined.",
+            "domain": "agricultural_origin"
+        },
+    ],
+
+    "The Great Pyramid / Old Kingdom Egypt": [
+        {
+            "anchor": "The Great Pyramid's base is level to within 2.1 centimetres across 230 metres — a precision not matched by any modern surveyed flat surface of comparable scale without laser equipment. The four cardinal alignments are accurate to within 0.067 degrees of true north, which was measurable in 2560 BCE only by tracking stellar circumpolar rotation over months or years.",
+            "domain": "construction_precision"
+        },
+        {
+            "anchor": "The Great Pyramid's King's Chamber contains a granite coffer cut from a single block of hard Aswan granite. The interior angles are accurate to 0.05mm. The granite contains traces of tool marks inconsistent with any known ancient Egyptian tool. The coffer is 1cm too wide to have been inserted after the chamber walls were built — it had to be placed during construction.",
+            "domain": "granite_precision"
+        },
+        {
+            "anchor": "The Pyramid Texts (2400 BCE) — the oldest religious writings in the world — describe a star-based afterlife navigation system with specific stellar coordinates, rising angles, and passage times for Orion's Belt and Thuban. The astronomical data is accurate. The passages in the pyramid align with these stars at the dates described. Who compiled the original star charts is not documented.",
+            "domain": "astronomical_alignment"
+        },
+        {
+            "anchor": "The Great Pyramid contains two narrow shafts rising at precise angles from the King's and Queen's Chambers. In 1993, a small robot reached a sealed door in the Queen's Chamber shaft after 63 metres. In 2011, a second robot drilled through the door and found another sealed door behind it. Neither chamber beyond has been entered. Nobody knows what is in them.",
+            "domain": "unexplored_chambers"
+        },
+        {
+            "anchor": "The internal temperature of the King's Chamber has been measured consistently at 20°C regardless of external temperature, season, or time of day. The granite walls are 2.6 metres thick. The chamber's acoustic resonance frequency is approximately 111Hz — documented to suppress activity in the prefrontal cortex and produce altered states in human subjects at sustained exposure.",
+            "domain": "acoustic_chamber"
+        },
+    ],
+
+    "Sumerian Civilisation / Mesopotamia": [
+        {
+            "anchor": "The Sumerian King List (2100 BCE) records kings ruling for tens of thousands of years before the Flood — one king ruled for 43,200 years. After the Flood, reigns suddenly drop to human lengths. Archaeologists classify the pre-Flood section as mythological. The post-Flood names match independently confirmed archaeological records of real rulers. The document does not change register between them.",
+            "domain": "king_list_chronology"
+        },
+        {
+            "anchor": "Cuneiform tablets from Nippur (circa 1700 BCE) describe a world map with Babylon at the centre, surrounded by ocean, with seven triangular regions beyond the ocean labelled 'distant regions' accessible only by a specific route. Two of the seven regions are described in detail. The tablet is the oldest world map. The two described regions have no confirmed correspondence to any geography.",
+            "domain": "ancient_cartography"
+        },
+        {
+            "anchor": "The Sumerians described a planet called Nibiru in astronomical tablets that do not correspond to any known planet in the inner solar system. The orbital period given is approximately 3,600 years. Modern orbital mechanics allows for undiscovered large bodies in the outer solar system — the gravitational anomalies in the Kuiper Belt remain unexplained. No Nibiru has been found. The search is ongoing.",
+            "domain": "planetary_anomaly"
+        },
+        {
+            "anchor": "The Epic of Gilgamesh (circa 2100 BCE) contains a flood narrative with specific parallels to the Genesis account: a single chosen man, a boat with specific dimensions, animals brought aboard, a bird sent out to test receding waters. The Sumerian version predates the Biblical account by at least 1,000 years. Both appear to derive from an earlier source that has not been found.",
+            "domain": "flood_narrative"
+        },
+        {
+            "anchor": "The Antikythera Mechanism (150-100 BCE) is a bronze calculating device that modelled the solar system with 37 interlocking gears accurate enough to predict solar and lunar eclipses 19 years in advance. Nothing of comparable mechanical complexity appears in the archaeological record for the next 1,400 years. The metallurgical and engineering knowledge required to produce it had no documented precedent and left no documented legacy.",
+            "domain": "lost_technology"
+        },
+    ],
+
+    "Indus Valley Civilisation / Harappa": [
+        {
+            "anchor": "The Indus Valley Civilisation (3300-1300 BCE) built cities with standardised brick sizes used consistently across 1.5 million square kilometres — from Afghanistan to the Arabian Sea. No palace, no temple, no structure identifiably more important than any other has been found in any major city. No royal burials. No obvious hierarchy in skeletal remains. Nobody knows who governed it.",
+            "domain": "egalitarian_urbanism"
+        },
+        {
+            "anchor": "The Indus script appears on approximately 4,000 seals and tablets, uses 400-600 distinct signs, and has been studied since 1875. It has not been deciphered. It shares no confirmed connection to any known writing system. The longest known inscription is 26 signs. Without a bilingual key, it may never be read. The language of the Indus Valley is unknown.",
+            "domain": "undeciphered_script"
+        },
+        {
+            "anchor": "Mohenjo-daro's Great Bath (2600 BCE) is a waterproofed tank of fired brick and bitumen, 12 metres long, 7 metres wide, 2.4 metres deep, fed by a well and drained by an opening in the corner. It was built to hold water for an unknown purpose — ritual bathing, water storage, cooling system. It was sophisticated enough to require municipal water engineering. Nobody knows what it was for.",
+            "domain": "hydraulic_engineering"
+        },
+        {
+            "anchor": "Skeletal remains at Mohenjo-daro show a sudden, catastrophic event — unburied bodies found in streets and houses, some with signs of violent death. The collapse of the Indus Valley Civilisation around 1900 BCE happened within approximately a century and affected every major city simultaneously. Climate change, invasion, disease, and earthquake have all been proposed. None fully accounts for the simultaneity.",
+            "domain": "civilisation_collapse"
+        },
+        {
+            "anchor": "Indus Valley seals depict a figure in a cross-legged seated posture surrounded by animals — identified by some scholars as a proto-Shiva figure, by others as a shaman or ruler. The posture is anatomically identical to later yogic and meditative positions codified in Hindu texts 1,500 years later. Whether this represents continuous cultural transmission or independent reinvention has not been resolved.",
+            "domain": "iconographic_continuity"
+        },
+    ],
+
+    "Mycenae / Bronze Age Collapse": [
+        {
+            "anchor": "Around 1200 BCE, every major Bronze Age civilisation in the Eastern Mediterranean collapsed within approximately 50 years: the Mycenaean Greeks, Hittite Empire, Ugarit, Egyptian New Kingdom, Kassite Babylon. Each collapse left incomplete construction projects, unburied dead, abandoned palaces. A clay tablet from Ugarit, the last written record of that city, reads: 'There is death in the land. Our grain has been taken. The enemy ships are here.' The tablet was never sent.",
+            "domain": "bronze_age_collapse"
+        },
+        {
+            "anchor": "The Linear B tablets of Mycenae are palace administrative records — inventories of oil, grain, bronze, cloth, livestock. They record the palace economy in meticulous detail. The last tablets show increasingly frantic emergency requisitioning of military materials and food. The writing stops. Mycenae was abandoned around 1100 BCE and not reoccupied. The final tablets were preserved because the palace burned down, baking the clay.",
+            "domain": "administrative_collapse"
+        },
+        {
+            "anchor": "The Lion Gate at Mycenae (1250 BCE) uses a single lintel stone weighing approximately 20 tonnes, positioned 3 metres above ground. The corbelled ceiling stones of the Treasury of Atreus span a 14.5-metre diameter dome — the largest in the world for 1,300 years, until the Pantheon in Rome. Both were built without mortar. The Treasury of Atreus was rifled in antiquity. The bodies it contained have never been identified.",
+            "domain": "megalithic_engineering"
+        },
+        {
+            "anchor": "Homer's Iliad describes Troy as a real city with a real harbour. Until 1868, it was classified as myth. Heinrich Schliemann excavated Hisarlik in Turkey and found nine successive cities, one above the other. Troy VIIa (1300-1180 BCE) shows evidence of fire, collapsed walls, and scattered human remains consistent with violent destruction. The layer below it shows earthquake damage. Both explanations for the fall of Troy exist in the archaeological record, in adjacent strata.",
+            "domain": "legendary_city"
+        },
+        {
+            "anchor": "The Phaistos Disc (1700 BCE) is a clay disc from Crete bearing 241 symbols arranged in a spiral, stamped with 45 distinct seal types. It is unique — no other object uses the same symbols. It was found sealed in a ground-floor deposit. It is the only known example of its script. It has not been deciphered. It was manufactured with a stamp-and-repeat technique that implies the symbols were used elsewhere — on objects that have not been found.",
+            "domain": "undeciphered_artefact"
+        },
+    ],
+
+    "Ancient Egypt / Dynastic Period": [
+        {
+            "anchor": "The Dendera Zodiac (50 BCE) is a bas-relief star map on the ceiling of Hathor's temple. Modern astronomical back-calculation shows it records the sky as it appeared in approximately 90,000 BCE — a date 87,000 years before the temple was built. Mainstream Egyptology classifies this as a mythological date. The astronomical data is precise enough to be accidental only at a probability of less than one in ten thousand.",
+            "domain": "astronomical_dating"
+        },
+        {
+            "anchor": "The Turin King List (1279 BCE) records Egyptian pharaohs back to 3100 BCE, then lists 'gods who ruled on earth' for 13,420 years before historical kings, followed by 'Spirits of the Dead' ruling for 11,025 years before the gods. The document was complete when found. It has since been fragmented. Historians classify the pre-dynastic section as legend. The dynastic section is accurate to the year.",
+            "domain": "predynastic_record"
+        },
+        {
+            "anchor": "The mummification process (circa 2600 BCE) required knowledge of: specific natron concentrations, the 70-day timing of Sirius's heliacal rising, the removal and separate preservation of four specific organs, and the precise wrapping sequence of linen. The earliest mummies are the best preserved. The technique was not gradually refined — it appeared in near-perfect form and then slowly degraded over centuries.",
+            "domain": "embalming_knowledge"
+        },
+        {
+            "anchor": "The Saqqara bird (circa 200 BCE) is a carved wooden object found in a tomb, classified since discovery as a votive model. In 1969, aeronautical engineer Khalil Messiha re-examined it and argued it was an aerodynamically functional scale model of a glider. The Egyptian Museum reclassified it as a toy bird. It has never been tested in a wind tunnel. No other ancient culture produced a carved bird with a horizontal tail fin.",
+            "domain": "ancient_aerodynamics"
+        },
+        {
+            "anchor": "The tomb of Seti I (1294 BCE) contains relief carvings in the Abydos temple that, at a certain angle of oblique lighting, appear to show outlines that some observers identify as a helicopter, submarine, and aircraft. Mainstream Egyptology explains these as pareidolia from palimpsest carvings — two sets of hieroglyphs superimposed. High-resolution photogrammetric analysis has not definitively resolved which explanation is correct.",
+            "domain": "hieroglyphic_anomaly"
+        },
+    ],
+
+    "The Maya / Mesoamerica": [
+        {
+            "anchor": "The Maya Long Count calendar, initiated in 3114 BCE, tracks time in units of 144,000 days. The calendar was not invented for administrative convenience — no agricultural or political cycle requires a unit of 144,000 days. The system can date events 90 million years in the past and project 90 million years forward. No civilisation has a documented need for a calendar of this precision. The Maya explanation for why they needed it has not been fully decoded.",
+            "domain": "calendar_precision"
+        },
+        {
+            "anchor": "The Dresden Codex (1200-1450 CE) contains tables calculating Venus's synodic cycle to an accuracy of one day per 6,000 years — more precise than the Gregorian calendar's solar year calculation. The tables also contain eclipse prediction intervals accurate to less than a day across centuries. The Maya had no telescopes. The mathematical system required to produce these tables was independently invented on a different continent from every other advanced mathematical system.",
+            "domain": "astronomical_mathematics"
+        },
+        {
+            "anchor": "Chichen Itza's El Castillo pyramid is oriented so that on the spring and autumn equinoxes, shadows cast by the nine terraces create the illusion of a feathered serpent descending the northern staircase. The effect lasts precisely 34 minutes. It required the builders to calculate the exact solar angle at the equinox centuries before construction began, and to align nine separate terraces to within fractions of a degree.",
+            "domain": "equinox_alignment"
+        },
+        {
+            "anchor": "The Olmec civilisation (1500-400 BCE) produced colossal basalt heads up to 3.4 metres tall and weighing 40 tonnes, transported from quarries at least 150 kilometres away without the wheel, with no documented system of river transport for the specific routes involved. The faces depicted are not Mesoamerican in feature — they show characteristics associated with West African populations. The connection has not been explained.",
+            "domain": "olmec_origins"
+        },
+        {
+            "anchor": "Palenque's sarcophagus lid (683 CE) shows the Mayan ruler Pakal at the moment of death — falling into Xibalba, the underworld. In 1952, Erich von Däniken argued the lid showed a man piloting a spacecraft. Mainstream archaeologists identify the imagery as standard Mayan cosmological iconography. The same image, reanalysed by contemporary glyph specialists, shows 11 separate identifiable mythological symbols. The two interpretations have never been reconciled in a single definitive paper.",
+            "domain": "iconographic_debate"
+        },
+    ],
+
+    "Stonehenge / Megalithic Britain": [
+        {
+            "anchor": "Stonehenge's bluestones (circa 3000 BCE) were transported from the Preseli Hills in Wales — 250 kilometres away. Each stone weighs 2-5 tonnes. The terrain between includes the Bristol Channel. No Bronze Age transport technology has been demonstrated to be capable of moving stones this size this distance. A 2019 experiment using Bronze Age methods failed to move a single 1-tonne stone more than 100 metres without the stone cracking.",
+            "domain": "megalithic_transport"
+        },
+        {
+            "anchor": "The Avenue at Stonehenge — a 2.8-kilometre processional route aligned to the midsummer sunrise and midwinter sunset — follows an ancient glacial channel that naturally aligned to the same solar directions before the monument was built. The builders oriented the monument to a natural feature that was already there, already aligned. Whether the builders discovered the natural alignment or the alignment drew them to the site has not been determined.",
+            "domain": "natural_alignment"
+        },
+        {
+            "anchor": "Stonehenge was rebuilt three separate times over 1,500 years (3000 BCE, 2500 BCE, 1500 BCE). Each rebuilding changed the orientation slightly. The first structure was a circular earthwork. The second introduced the bluestones. The third added the sarsen trilithons. Each phase used different construction techniques by populations separated by hundreds of years. The consistent goal across all three phases — a solar calendar — was never abandoned.",
+            "domain": "multi_phase_construction"
+        },
+        {
+            "anchor": "The Aubrey Holes at Stonehenge — 56 circular pits dug around 3000 BCE — contain cremated human remains of at least 63 individuals spanning 500 years. Isotopic analysis shows individuals buried here came from as far as Scotland and continental Europe. Stonehenge was a destination — a place people travelled hundreds of kilometres to be buried. Nobody knows what made it worth that journey.",
+            "domain": "cremation_archaeology"
+        },
+        {
+            "anchor": "The acoustic properties of Stonehenge's original complete configuration (sarsen ring + inner horseshoe + bluestones) would have created a specific reverberation time of approximately 0.6 seconds and directed sound inward rather than outward. This is the acoustic signature of a space designed for enclosed group ritual, not outdoor spectacle. The acoustic properties were intentional — they required placing stones of specific heights at specific spacings.",
+            "domain": "acoustic_design"
+        },
+    ],
+
+    "Ancient Mesopotamia / Babylon": [
+        {
+            "anchor": "The Hanging Gardens of Babylon are the only one of the Seven Wonders of the Ancient World with no confirmed archaeological evidence. They appear in Greek and Roman accounts but not in Babylonian records — despite Babylon's meticulous administrative documentation. In 2013, Oxford scholar Stephanie Dalley proposed the Hanging Gardens were actually in Nineveh, misattributed to Babylon. No definitive site has been identified.",
+            "domain": "lost_wonder"
+        },
+        {
+            "anchor": "Babylonian astronomical tablets (circa 700 BCE) record the positions of Jupiter using a mathematical technique — plotting velocity against time on a graph to calculate distance — that was believed to have been invented in 14th-century Europe. The tablets were found in 1881. The mathematical method was not identified until 2016. The tablets were in plain sight in the British Museum for 135 years before anyone understood what they showed.",
+            "domain": "mathematical_technique"
+        },
+        {
+            "anchor": "The Etemenanki ziggurat of Babylon (600 BCE) — the probable inspiration for the Tower of Babel — was 91 metres tall with a base of 91 metres square. Herodotus reported a solid gold statue of Marduk at the top weighing 800 Babylonian talents (approximately 24 tonnes). No trace of the statue has been found. Alexander the Great ordered the ziggurat demolished for rebuilding — it was never rebuilt. The foundation plan survives. The site is now in Iraq.",
+            "domain": "lost_monument"
+        },
+        {
+            "anchor": "The Baghdad Battery (circa 250 BCE-250 CE) is a terracotta jar found near Baghdad containing a copper cylinder, an iron rod, and traces of acetic acid — the components of a simple galvanic cell capable of producing approximately 1.5 volts. Replicas produce measurable current. No contemporary text describes electrical use. The object may be a scroll storage container. The debate has not been resolved by any method that does not involve assumptions about what ancient people were capable of.",
+            "domain": "ancient_technology"
+        },
+        {
+            "anchor": "Enuma Elish (circa 1100 BCE), the Babylonian creation epic, describes the cosmos being formed from the body of the defeated chaos dragon Tiamat — her upper half becoming the sky, her lower half the earth, her eyes the sources of the Tigris and Euphrates. Modern reading of the text in light of Mesopotamian geography shows the rivers do emerge from elevations that could be metaphorically described as the locations given. The myth encodes accurate hydrology.",
+            "domain": "mythological_geography"
+        },
+    ],
+
+    "The Nazca Lines / Ancient Peru": [
+        {
+            "anchor": "The Nazca Lines (100 BCE-800 CE) cover 450 square kilometres of Peruvian desert. The largest figures are 370 metres long. They are only fully visible from the air — from the ground, they appear as shallow cleared paths. The figures include a spider that exactly replicates the genus Ricinulei, found only in the Amazon basin 500 kilometres away. How the Nazca obtained accurate enough imagery of this spider to replicate it at 370-metre scale on the desert floor has not been explained.",
+            "domain": "geoglyph_scale"
+        },
+        {
+            "anchor": "The Nazca lines were made by removing red iron-oxide surface stones to reveal yellow-grey ground beneath. The cleared lines have been preserved for 2,000 years by the specific microclimate of the Nazca plateau — almost zero wind, almost zero rainfall, a thermal wind layer close to the ground that deposits dust back in position. The geoglyphs were made in the only desert on Earth with these specific preservation conditions.",
+            "domain": "preservation_conditions"
+        },
+        {
+            "anchor": "Groundwater mapping beneath the Nazca plateau shows that many of the lines and spirals trace the underground path of aquifers. The spiral figures in particular follow the exact routes of sub-surface water flows. This suggests the geoglyphs may be a map of water resources — a hypothesis supported by their placement near ancient irrigation systems. The largest biomorphic figures (the hummingbird, condor, spider) do not fit this pattern.",
+            "domain": "hydrological_mapping"
+        },
+        {
+            "anchor": "Trophy heads — decapitated skulls with a hole drilled through the forehead for carrying on a cord — have been found throughout the Nazca plateau. Isotopic analysis shows the individuals were not local — they came from diverse regions across Peru. Some are male, some female, some adolescent. They span 600 years of production. The ritual purpose has been inferred but not confirmed from any contemporary written record.",
+            "domain": "ritual_decapitation"
+        },
+        {
+            "anchor": "The Nazca plateau contains geoglyphs depicting 70 plant and animal figures, 300 geometric figures, and 800 straight lines. Several of the straight lines extend for 50 kilometres without deviation, crossing hills, ravines, and irregular terrain as if the terrain did not exist. Modern survey confirms the longest lines maintain accuracy to within 0.1 degrees over their full length. The survey method used to achieve this precision has not been identified.",
+            "domain": "survey_precision"
+        },
+    ],
+}
+
+ANCIENT_CIVILISATIONS = list(ANCIENT_ANCHORS.keys())
+
+
 def get_entity_context(entity_name: str) -> dict:
     """
     Looks up entity knowledge by name — handles partial matches
