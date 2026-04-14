@@ -1008,8 +1008,8 @@ Return JSON:
 Include all 18 sections in the "sections" array (nums 1-18). Return only the JSON object."""
 
     msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=4000,
+        model="claude-sonnet-4-6",
+        max_tokens=6000,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
