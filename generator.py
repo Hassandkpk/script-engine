@@ -516,8 +516,19 @@ Return JSON:
 def generate_intro(title: str, protocol_text: str, outline: dict, tone: str, api_key: str) -> str:
     raw = _generate_part(
         title, protocol_text, tone, api_key,
-        instruction=f"Write ONLY the intro (exactly 150 words). Intro outline: {outline.get('intro', '')}. "
-                    "No section headings. Just the opening 150 words of the script.",
+        instruction=(
+            f"Write ONLY the intro (exactly 150 words). Intro outline: {outline.get('intro', '')}.\n\n"
+            "INTRO STRUCTURE — follow this in order:\n"
+            "1. Open immediately on the specific real-world fact or phenomenon from the protocol anchor. "
+            "Name it directly. Do not open with atmosphere, mood, or abstraction. "
+            "The listener clicked this title for a reason — confirm in the first two sentences that they are in the right place.\n"
+            "2. State the specific argument this documentary makes. One clear, direct claim. "
+            "Not a question. Not a tease. A claim.\n"
+            "3. Establish why that claim is disturbing — what it implies about the entity or concept. "
+            "This is where the scholarly tone takes hold. End the intro in a way that makes the next section unavoidable.\n\n"
+            "The intro must be immediately intelligible to someone lying in the dark who just pressed play. "
+            "No section headings. Output only the intro."
+        ),
         max_tokens=600
     )
     return apply_voice_filter(raw, title, api_key)
