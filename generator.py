@@ -1024,6 +1024,7 @@ def generate_ancient_section(title: str, protocol_text: str, outline: dict, sect
     Generate one section of an ancient history sleep documentary script.
     Mirrors generate_body_section — uses protocol_text and outline.
     """
+    client = anthropic.Anthropic(api_key=api_key.strip())
     sections = outline.get("sections", [])
     sec_data = next((s for s in sections if s.get("num") == section_num), {})
     heading = sec_data.get("heading", f"Section {section_num}")
