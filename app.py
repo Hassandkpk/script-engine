@@ -18,7 +18,9 @@ from generator import (generate_script, generate_titles, generate_protocol_from_
                        build_protocol_text, generate_section, generate_outline,
                        check_outline_uniqueness, generate_intro, generate_body_section,
                        generate_conclusion, audit_section, revise_section_from_audit,
-                       discover_topics, generate_title_formats)
+                       discover_topics, generate_title_formats,
+                       generate_ancient_outline, generate_ancient_section,
+                       revise_ancient_section_from_audit, _get_ancient_section_brief)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -470,6 +472,34 @@ if 'api_key' not in st.session_state:
     except Exception:
         st.session_state.api_key = ""
 
+# Niche selector
+if 'niche' not in st.session_state:
+    st.session_state.niche = "Cosmic Horror"
+
+# Ancient Stories state machine
+if 'anc_step' not in st.session_state:
+    st.session_state.anc_step = 1        # 1=topic, 2=outline, 3=writing
+if 'anc_topic' not in st.session_state:
+    st.session_state.anc_topic = ""
+if 'anc_title' not in st.session_state:
+    st.session_state.anc_title = ""
+if 'anc_outline' not in st.session_state:
+    st.session_state.anc_outline = {}
+if 'anc_outline_approved' not in st.session_state:
+    st.session_state.anc_outline_approved = False
+if 'anc_sections' not in st.session_state:
+    st.session_state.anc_sections = []   # approved sections (list of str)
+if 'anc_pending' not in st.session_state:
+    st.session_state.anc_pending = ""    # current pending section text
+if 'anc_section_num' not in st.session_state:
+    st.session_state.anc_section_num = 1
+if 'anc_audit' not in st.session_state:
+    st.session_state.anc_audit = None
+if 'anc_assembled' not in st.session_state:
+    st.session_state.anc_assembled = ""
+if 'anc_assembled_done' not in st.session_state:
+    st.session_state.anc_assembled_done = False
+
 with st.sidebar:
     st.markdown("""
     <div class='sp-sidebar-icon'>S</div>
@@ -505,8 +535,10 @@ with st.sidebar:
 
     st.markdown("---")
 
-    mode = st.radio("Mode", ["Simple", "Full"], index=0 if st.session_state.mode == "Simple" else 1, horizontal=True)
-    st.session_state.mode = mode
+    niche = st.radio("Niche", ["Cosmic Horror", "Ancient Stories"],
+                     index=0 if st.session_state.niche == "Cosmic Horror" else 1,
+                     horizontal=True)
+    st.session_state.niche = niche
 
     st.markdown("---")
 
@@ -528,7 +560,11 @@ with st.sidebar:
 
     st.markdown("---")
 
-    if st.session_state.mode == "Simple":
+    if st.session_state.niche == "Ancient Stories":
+        page = st.radio("Navigation",
+                        ["Ancient Script Builder", "Script History", "Channel Settings"],
+                        label_visibility="collapsed", key="nav_radio_ancient")
+    elif st.session_state.mode == "Simple":
         page = st.radio("Navigation", ["Quick Generate", "Script History"], label_visibility="collapsed", key="nav_radio_simple")
     else:
         full_pages = ["Topic Discovery", "Divergence Protocol", "Title Machine", "Script History", "Anti-Pattern Log", "Channel Settings"]
@@ -537,6 +573,10 @@ with st.sidebar:
             st.session_state.nav_radio_full = override
             st.session_state.page_override = None
         page = st.radio("Navigation", full_pages, label_visibility="collapsed", key="nav_radio_full")
+
+    if st.session_state.niche == "Cosmic Horror":
+        mode = st.radio("Mode", ["Simple", "Full"], index=0 if st.session_state.mode == "Simple" else 1, horizontal=True, key="mode_radio")
+        st.session_state.mode = mode
 
 
 def _render_audit(audit: dict):
@@ -579,6 +619,299 @@ def _render_audit(audit: dict):
 
     st.markdown("</div>", unsafe_allow_html=True)
 
+
+
+if page == "Ancient Script Builder":
+    st.markdown("<div class='sp-hero-label'>Ancient Stories — Hassan Ali</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-title'>Ancient Script Builder</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-sub'>Enter your topic. Specter builds a custom 18-section outline and writes each section with full audit and revision support.</div>", unsafe_allow_html=True)
+    st.markdown("")
+
+    if not st.session_state.api_key:
+        st.warning("Add your Anthropic API key in the sidebar.")
+
+    # Step progress
+    anc_steps = ["Topic & Title", "Outline", "Writing"]
+    anc_current = st.session_state.anc_step
+    cols = st.columns(3)
+    for i, (col, label) in enumerate(zip(cols, anc_steps)):
+        sn = i + 1
+        if sn < anc_current:
+            col.markdown(f"<div style='text-align:center;font-size:15px;font-weight:600;color:#16a34a;padding:8px 0'>✓ {label}</div>", unsafe_allow_html=True)
+        elif sn == anc_current:
+            col.markdown(f"<div style='text-align:center;font-size:15px;font-weight:700;color:#7c3aed;border-bottom:3px solid #7c3aed;padding-bottom:8px'>{label}</div>", unsafe_allow_html=True)
+        else:
+            col.markdown(f"<div style='text-align:center;font-size:15px;color:#ccc;padding:8px 0'>{label}</div>", unsafe_allow_html=True)
+
+    st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+
+    # Reset button
+    if st.session_state.anc_step > 1:
+        if st.button("↺ Start over", key="anc_reset"):
+            for k in ['anc_step','anc_topic','anc_title','anc_outline','anc_outline_approved',
+                      'anc_sections','anc_pending','anc_section_num','anc_audit',
+                      'anc_assembled','anc_assembled_done']:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
+
+    # =====================================================================
+    # STEP 1 — TOPIC & TITLE
+    # =====================================================================
+    if st.session_state.anc_step >= 1:
+        st.markdown("<div class='sp-section-label'>Step 1 — Enter your topic and video title</div>", unsafe_allow_html=True)
+
+        if st.session_state.anc_step == 1:
+            st.markdown("<div style='font-size:15px;color:#777;margin-bottom:16px;'>Enter the ancient civilisation, monument, or mystery you want to explore. Then add a YouTube title — descriptive enough to ground the outline.</div>", unsafe_allow_html=True)
+
+            anc_topic_input = st.text_input(
+                "Topic",
+                value=st.session_state.anc_topic,
+                placeholder="e.g. The Great Pyramid of Giza, Göbekli Tepe, The Indus Valley Civilisation...",
+                label_visibility="collapsed",
+                key="anc_topic_input"
+            )
+            anc_title_input = st.text_input(
+                "Video title (for YouTube)",
+                value=st.session_state.anc_title,
+                placeholder="e.g. The Lost Builders of Göbekli Tepe — A Sleep Documentary",
+                key="anc_title_input"
+            )
+
+            if st.button("Confirm topic — generate outline →", key="anc_step1_btn"):
+                if not anc_topic_input.strip():
+                    st.error("Enter a topic first.")
+                elif not anc_title_input.strip():
+                    st.error("Enter a video title.")
+                else:
+                    st.session_state.anc_topic = anc_topic_input.strip()
+                    st.session_state.anc_title = anc_title_input.strip()
+                    st.session_state.anc_step = 2
+                    st.rerun()
+        else:
+            st.markdown(f"<div class='sp-locked-badge'>✓ Topic: {st.session_state.anc_topic}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='sp-locked-badge' style='margin-top:6px'>✓ Title: {st.session_state.anc_title}</div>", unsafe_allow_html=True)
+
+    # =====================================================================
+    # STEP 2 — OUTLINE
+    # =====================================================================
+    if st.session_state.anc_step >= 2:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 2 — Custom 18-section outline</div>", unsafe_allow_html=True)
+
+        if st.session_state.anc_step == 2:
+            if not st.session_state.anc_outline:
+                with st.spinner(f"Building custom 18-section outline for: {st.session_state.anc_topic}..."):
+                    outline = generate_ancient_outline(
+                        st.session_state.anc_topic, st.session_state.api_key
+                    )
+                    st.session_state.anc_outline = outline
+                st.rerun()
+            else:
+                outline = st.session_state.anc_outline
+
+                if outline.get("error"):
+                    st.error(f"Outline generation failed: {outline.get('error')} | {outline.get('raw','')}")
+                    if st.button("↻ Try again", key="anc_regen_outline_err"):
+                        st.session_state.anc_outline = {}
+                        st.rerun()
+                else:
+                    # Display all 18 sections
+                    total_secs = outline.get("total_sections", 18)
+
+                    # Section 1
+                    sec1 = outline.get("section_1", {})
+                    with st.expander(f"Section 1: {sec1.get('heading', 'The Invitation')}"):
+                        st.markdown(f"**Theme:** {sec1.get('theme', '')}")
+                        for f in sec1.get("focus", []):
+                            st.markdown(f"- {f}")
+
+                    # Groups 2-4, 5-7, 8-11, 12-14, 15-16
+                    for group_key, label in [
+                        ("sections_2_4", "Sections 2-4: The Forgotten World"),
+                        ("sections_5_7", "Sections 5-7: The Emergence"),
+                        ("sections_8_11", "Sections 8-11: The Golden Age"),
+                        ("sections_12_14", "Sections 12-14: The Hidden Dimensions"),
+                        ("sections_15_16", "Sections 15-16: The Great Questions"),
+                    ]:
+                        for sec in outline.get(group_key, []):
+                            with st.expander(f"Section {sec.get('num','?')}: {sec.get('heading', '')}"):
+                                st.markdown(f"**Theme:** {sec.get('theme', '')}")
+                                for f in sec.get("focus", []):
+                                    st.markdown(f"- {f}")
+
+                    # Section 17 and 18
+                    for sec_key in ["section_17", "section_18"]:
+                        sec = outline.get(sec_key, {})
+                        if sec:
+                            with st.expander(f"Section {sec.get('num','?')}: {sec.get('heading', '')}"):
+                                st.markdown(f"**Theme:** {sec.get('theme', '')}")
+                                for f in sec.get("focus", []):
+                                    st.markdown(f"- {f}")
+
+                    if outline.get("key_themes"):
+                        st.markdown(f"<div class='sp-reason'>Key themes: {' · '.join(outline['key_themes'])}</div>", unsafe_allow_html=True)
+
+                    st.markdown("")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("↻ Regenerate outline", key="anc_regen_outline"):
+                            st.session_state.anc_outline = {}
+                            st.rerun()
+                    with col2:
+                        if st.button("Approve outline — start writing →", key="anc_approve_outline"):
+                            st.session_state.anc_outline_approved = True
+                            st.session_state.anc_step = 3
+                            st.rerun()
+        else:
+            outline = st.session_state.anc_outline
+            total = outline.get("total_sections", 18)
+            st.markdown(f"<div class='sp-locked-badge'>✓ Outline approved — {total} sections · ~15,000 words target</div>", unsafe_allow_html=True)
+
+    # =====================================================================
+    # STEP 3 — WRITING (18 sections)
+    # =====================================================================
+    if st.session_state.anc_step >= 3:
+        st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 3 — Writing sections</div>", unsafe_allow_html=True)
+
+        topic = st.session_state.anc_topic
+        title = st.session_state.anc_title
+        outline = st.session_state.anc_outline
+        approved = st.session_state.anc_sections
+        sec_num = st.session_state.anc_section_num
+        total_sections = outline.get("total_sections", 18)
+
+        # Show approved sections
+        if approved:
+            total_words = sum(len(s.split()) for s in approved)
+            st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>{len(approved)} sections approved · ~{total_words:,} words</div>", unsafe_allow_html=True)
+            for i, sec_text in enumerate(approved):
+                sec_brief = None
+                # Get heading for display
+                sec_brief = _get_ancient_section_brief(outline, i + 1)
+                heading = sec_brief.get("heading", f"Section {i+1}") if sec_brief else f"Section {i+1}"
+                with st.expander(f"✓ Section {i+1}: {heading}"):
+                    st.text_area("", value=sec_text, height=150, label_visibility="collapsed",
+                                 key=f"anc_approved_{i}", disabled=True)
+
+        # If not all done, generate next section
+        if not st.session_state.anc_assembled_done:
+            all_done = len(approved) >= total_sections
+
+            if not all_done:
+                sec_brief = None
+                sec_brief = _get_ancient_section_brief(outline, sec_num)
+                current_heading = sec_brief.get("heading", f"Section {sec_num}") if sec_brief else f"Section {sec_num}"
+
+                st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin:16px 0 8px'>Section {sec_num} of {total_sections}: {current_heading}</div>", unsafe_allow_html=True)
+
+                if not st.session_state.anc_pending:
+                    with st.spinner(f"Writing section {sec_num} of {total_sections}..."):
+                        sec_text = generate_ancient_section(
+                            topic, title, outline, sec_num,
+                            approved, st.session_state.api_key
+                        )
+                        st.session_state.anc_pending = sec_text
+                        st.session_state.anc_audit = None
+                    st.rerun()
+
+                edited_sec = st.text_area(
+                    f"Section {sec_num}",
+                    value=st.session_state.anc_pending,
+                    height=350,
+                    label_visibility="collapsed",
+                    key="anc_pending_area"
+                )
+                wc = len(edited_sec.split())
+                st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    if st.button("↻ Regenerate", key="anc_regen_sec"):
+                        st.session_state.anc_pending = ""
+                        st.session_state.anc_audit = None
+                        st.rerun()
+                with col2:
+                    if st.button("🔍 Run audit", key="anc_audit_sec"):
+                        with st.spinner("Auditing..."):
+                            sec_brief_for_audit = _get_ancient_section_brief(outline, sec_num)
+                            audit_outline = {
+                                "heading": sec_brief_for_audit.get("heading", ""),
+                                "bullets": sec_brief_for_audit.get("focus", [])
+                            }
+                            st.session_state.anc_audit = audit_section(
+                                edited_sec, audit_outline, sec_num, st.session_state.api_key
+                            )
+                            st.session_state.anc_pending = edited_sec
+                        st.rerun()
+                with col3:
+                    next_label = f"✓ Approve → {sec_num+1}" if sec_num < total_sections else "✓ Approve → Assemble"
+                    if st.button(next_label, key="anc_approve_sec"):
+                        st.session_state.anc_sections.append(edited_sec)
+                        st.session_state.anc_section_num += 1
+                        st.session_state.anc_pending = ""
+                        st.session_state.anc_audit = None
+                        st.rerun()
+                with col4:
+                    if st.button("⏹ Wrap up early", key="anc_stop_early"):
+                        st.session_state.anc_sections.append(edited_sec)
+                        st.session_state.anc_section_num = total_sections + 1
+                        st.session_state.anc_pending = ""
+                        st.session_state.anc_audit = None
+                        st.rerun()
+
+                # Audit report + revision
+                if st.session_state.anc_audit:
+                    _render_audit(st.session_state.anc_audit)
+                    audit = st.session_state.anc_audit
+                    if audit.get("total_issues", 0) > 0:
+                        st.markdown("")
+                        if st.button("✦ Revise section to fix audit issues", key="anc_revise_sec"):
+                            with st.spinner("Revising section based on audit..."):
+                                revised = revise_ancient_section_from_audit(
+                                    st.session_state.anc_pending,
+                                    audit, title, st.session_state.api_key
+                                )
+                                st.session_state.anc_pending = revised
+                                st.session_state.anc_audit = None
+                            st.rerun()
+
+            # All sections done — assemble
+            else:
+                if not st.session_state.anc_assembled:
+                    assembled = "\n\n".join(approved)
+                    st.session_state.anc_assembled = assembled
+                    st.session_state.anc_assembled_done = True
+                    # Save to history
+                    new_record = {
+                        "id": script_num,
+                        "date": datetime.now().isoformat(),
+                        "protocol": f"Ancient Stories | Topic: {topic}",
+                        "script": assembled,
+                        "anchor": topic,
+                        "pov": "meditative ancient documentary",
+                        "constraint": "18 sections, ~15,000 words",
+                        "word_target": "15,000 words (ancient stories)",
+                        "tone": "meditative",
+                    }
+                    save_script(new_record)
+                    st.rerun()
+
+        # Assembled script display
+        if st.session_state.anc_assembled_done and st.session_state.anc_assembled:
+            st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
+            total_words = len(st.session_state.anc_assembled.split())
+            st.markdown(f"<div class='sp-locked-badge'>✓ Script complete — {total_words:,} words — saved as #{script_num-1:03d}</div>", unsafe_allow_html=True)
+            st.text_area("", value=st.session_state.anc_assembled, height=500,
+                         label_visibility="collapsed", key="anc_assembled_view")
+            col1, col2 = st.columns(2)
+            with col1:
+                pdf = export_pdf(st.session_state.anc_assembled, script_num-1)
+                st.download_button("↓ Download PDF", pdf, file_name=f"script_{script_num-1:03d}.pdf", mime="application/pdf")
+            with col2:
+                docx = export_docx(st.session_state.anc_assembled, script_num-1)
+                st.download_button("↓ Download Word", docx, file_name=f"script_{script_num-1:03d}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
 
 if page == "Topic Discovery":
