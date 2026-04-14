@@ -952,64 +952,60 @@ def generate_ancient_outline(title: str, protocol: dict, api_key: str) -> dict:
 
     system = (
         "You are an ancient history sleep documentary script architect. "
-        "You produce custom 18-section outlines that deliver exactly what the video title promises. "
         "CRITICAL RULE: The title is the subject. The anchor is the entry point into that subject. "
         "The outline must be about the TITLE TOPIC from section 1 to section 18. "
-        "The anchor is a specific verifiable fact that opens the argument — it is not the argument itself. "
-        "If the title is about how the Anunnaki shaped religion, every section explores that claim "
-        "through different dimensions — origins, mechanisms, evidence, competing views, legacy. "
-        "The anchor fact appears in section 1 as the hook, then the script expands outward to deliver the full topic. "
-        "A viewer who clicks this title must feel, from section 1 to section 18, that they are getting exactly "
-        "what they came for — not a tangent, not a deep-dive into a related document, not a history of something adjacent. "
-        "Target: 15,000 words, ~600-900 words per section. "
-        "Audience: ages 45-65+, 83% male, intellectual sleep content. "
-        "Output only valid JSON."
+        "The anchor fact appears in section 1 as the hook — then every section pursues the title's argument. "
+        "A viewer who clicks this title must feel they are getting exactly what they came for across all 18 sections. "
+        "Be CONCISE in your JSON. Each section: one short heading + one sentence focus. No long prose. "
+        "Output only valid JSON. No extra text before or after the JSON object."
     )
 
     user = f"""Title: "{title}"
+Civilisation: {protocol.get('civilisation', '')}
+Anchor: {protocol.get('anchor', '')}
+Angle: {protocol.get('angle', '')}
+POV: {protocol.get('pov', '')} | Distance: {protocol.get('distance', '')} | Structure: {protocol.get('para', '')}
+Constraint: {protocol.get('constraint', '')}
 
-Protocol:
-- Civilisation/Site: {protocol.get('civilisation', '')}
-- Anchor: {protocol.get('anchor', '')}
-- Angle: {protocol.get('angle', '')}
-- POV: {protocol.get('pov', '')}
-- Distance: {protocol.get('distance', '')}
-- Structure: {protocol.get('para', '')}
-- Constraint: {protocol.get('constraint', '')}
+Narrative arc:
+1: Invitation — anchor fact as hook, establish the title's central claim
+2-4: Origins — historical foundation of the claim
+5-7: Mechanism — how the thing the title describes actually operated
+8-11: Evidence — specific documented examples of the claim across history
+12-14: Hidden Layers — modern research/archaeology reveals beneath the surface
+15-16: Competing Views — mainstream vs heterodox scholarly debate
+17: Legacy — how this dynamic persists today
+18: Stillness — meditation on the unknown, return to present moment
 
-THE SUBJECT OF THIS SCRIPT IS THE TITLE: "{title}"
-The anchor is the real verifiable fact that opens the argument. Once introduced, the script must pursue the title's argument across all 18 sections.
-
-Generate a custom 18-section outline. The narrative arc must serve the title:
-Section 1: The Invitation — open on the anchor fact, establish the central claim of the title, welcome the listener
-Sections 2-4: Origins — the deep historical foundation of the claim (who, what, when, where the story begins)
-Sections 5-7: The Mechanism — how the thing the title describes actually operated (the specific process, system, or structure)
-Sections 8-11: The Evidence — specific documented examples of the claim playing out across history and civilisations
-Sections 12-14: The Hidden Layers — what modern research, archaeology, or comparative religion reveals beneath the surface
-Sections 15-16: The Competing Views — scholarly debate, alternative interpretations, what mainstream and heterodox positions each argue
-Section 17: The Legacy — how this dynamic persists or transformed into the present day
-Section 18: The Stillness — peaceful meditation on what remains unknown, return to the present moment
-
-Every section heading must be specific to THIS topic and anchor — not generic labels.
-Every section must advance the argument the title makes — not drift into adjacent history.
-
-Return JSON:
+Return ONLY this JSON (keep values short — one sentence max per field):
 {{
-  "section_1": {{"heading": "...", "summary": "2-3 sentences: what anchor fact opens this, what claim it establishes"}},
+  "central_argument": "one sentence claim",
   "sections": [
-    {{"num": 2, "heading": "...", "bullets": ["specific content this section covers", "how it advances the title's argument", "anchor or evidence used"]}},
-    {{"num": 3, "heading": "...", "bullets": [...]}},
-    ...all 18 sections...
+    {{"num": 1, "heading": "short title-specific heading", "focus": "one sentence: what this section covers and why it matters to the title"}},
+    {{"num": 2, "heading": "...", "focus": "..."}},
+    {{"num": 3, "heading": "...", "focus": "..."}},
+    {{"num": 4, "heading": "...", "focus": "..."}},
+    {{"num": 5, "heading": "...", "focus": "..."}},
+    {{"num": 6, "heading": "...", "focus": "..."}},
+    {{"num": 7, "heading": "...", "focus": "..."}},
+    {{"num": 8, "heading": "...", "focus": "..."}},
+    {{"num": 9, "heading": "...", "focus": "..."}},
+    {{"num": 10, "heading": "...", "focus": "..."}},
+    {{"num": 11, "heading": "...", "focus": "..."}},
+    {{"num": 12, "heading": "...", "focus": "..."}},
+    {{"num": 13, "heading": "...", "focus": "..."}},
+    {{"num": 14, "heading": "...", "focus": "..."}},
+    {{"num": 15, "heading": "...", "focus": "..."}},
+    {{"num": 16, "heading": "...", "focus": "..."}},
+    {{"num": 17, "heading": "...", "focus": "..."}},
+    {{"num": 18, "heading": "...", "focus": "..."}}
   ],
-  "total_sections": 18,
-  "central_argument": "One sentence — the specific claim this script makes about the title topic"
-}}
-
-Include all 18 sections in the "sections" array (nums 1-18). Return only the JSON object."""
+  "total_sections": 18
+}}"""
 
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=6000,
+        max_tokens=8000,
         system=system,
         messages=[{"role": "user", "content": user}]
     )
@@ -1031,12 +1027,12 @@ def generate_ancient_section(title: str, protocol_text: str, outline: dict, sect
     sections = outline.get("sections", [])
     sec_data = next((s for s in sections if s.get("num") == section_num), {})
     heading = sec_data.get("heading", f"Section {section_num}")
-    bullets = sec_data.get("bullets", [])
-    section_brief = f"Heading: {heading}\nCover: {', '.join(bullets)}" if bullets else f"Heading: {heading}"
+    focus = sec_data.get("focus", sec_data.get("bullets", [""])[0] if sec_data.get("bullets") else "")
+    section_brief = f"Heading: {heading}\nFocus: {focus}" if focus else f"Heading: {heading}"
 
     # Special instructions per section group
     if section_num == 1:
-        section_brief = outline.get("section_1", {}).get("summary", section_brief)
+        section_brief = f"Heading: {heading}\nFocus: {focus}"
         special = (
             "SECTION 1 — THE INVITATION:\n"
             "Open immediately on the anchor fact — name it in the first two sentences. "

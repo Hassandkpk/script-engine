@@ -850,8 +850,12 @@ if page == "Ancient Script Builder":
 
                     for sec in sections:
                         with st.expander(f"Section {sec.get('num','?')}: {sec.get('heading','')}"):
-                            for bullet in sec.get("bullets", []):
-                                st.markdown(f"- {bullet}")
+                            focus = sec.get("focus", "")
+                            if focus:
+                                st.markdown(f"- {focus}")
+                            else:
+                                for bullet in sec.get("bullets", []):
+                                    st.markdown(f"- {bullet}")
 
                     st.markdown("")
                     col1, col2 = st.columns(2)
@@ -986,6 +990,7 @@ if page == "Ancient Script Builder":
                         with st.spinner("Auditing..."):
                             audit_outline_sec = {
                                 "heading": current_heading,
+                                "focus": current_sec_data.get("focus", ""),
                                 "bullets": current_sec_data.get("bullets", [])
                             }
                             st.session_state.anc_audit = audit_section(
