@@ -20,8 +20,8 @@ from generator import (generate_script, generate_titles, generate_protocol_from_
                        generate_conclusion, audit_section, revise_section_from_audit,
                        discover_topics, generate_title_formats,
                        generate_ancient_protocol_from_title, build_ancient_protocol_text,
-                       generate_ancient_outline, generate_ancient_section,
-                       revise_ancient_section_from_audit)
+                       generate_ancient_outline, generate_ancient_intro,
+                       generate_ancient_section, revise_ancient_section_from_audit)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -494,12 +494,18 @@ if 'anc_outline_approved' not in st.session_state:
     st.session_state.anc_outline_approved = False
 if 'anc_uniqueness' not in st.session_state:
     st.session_state.anc_uniqueness = None
+if 'anc_intro_text' not in st.session_state:
+    st.session_state.anc_intro_text = ""
+if 'anc_intro_approved' not in st.session_state:
+    st.session_state.anc_intro_approved = False
+if 'anc_intro_audit' not in st.session_state:
+    st.session_state.anc_intro_audit = None
 if 'anc_sections' not in st.session_state:
     st.session_state.anc_sections = []
 if 'anc_pending' not in st.session_state:
     st.session_state.anc_pending = ""
 if 'anc_section_num' not in st.session_state:
-    st.session_state.anc_section_num = 1
+    st.session_state.anc_section_num = 2
 if 'anc_audit' not in st.session_state:
     st.session_state.anc_audit = None
 if 'anc_assembled' not in st.session_state:
@@ -655,8 +661,10 @@ if page == "Ancient Script Builder":
     if st.session_state.anc_step > 1:
         if st.button("↺ Start over", key="anc_reset"):
             for k in ['anc_step','anc_title','anc_concept_result','anc_protocol','anc_protocol_text',
-                      'anc_outline','anc_outline_approved','anc_uniqueness','anc_sections',
-                      'anc_pending','anc_section_num','anc_audit','anc_assembled','anc_assembled_done']:
+                      'anc_outline','anc_outline_approved','anc_uniqueness',
+                      'anc_intro_text','anc_intro_approved','anc_intro_audit',
+                      'anc_sections','anc_pending','anc_section_num','anc_audit',
+                      'anc_assembled','anc_assembled_done']:
                 if k in st.session_state: del st.session_state[k]
             st.rerun()
 
@@ -940,20 +948,76 @@ if page == "Ancient Script Builder":
         sec_num = st.session_state.anc_section_num
         total_sections = outline.get("total_sections", 18)
 
-        # Show approved sections
-        if approved:
-            total_words = sum(len(s.split()) for s in approved)
-            st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>{len(approved)} of {total_sections} sections approved · ~{total_words:,} words</div>", unsafe_allow_html=True)
-            for i, sec_text in enumerate(approved):
-                sections_list = outline.get("sections", [])
-                sec_data = next((s for s in sections_list if s.get("num") == i+1), {})
-                heading = sec_data.get("heading", f"Section {i+1}")
-                with st.expander(f"✓ Section {i+1}: {heading}"):
-                    st.text_area("", value=sec_text, height=150, label_visibility="collapsed",
-                                 key=f"anc_approved_{i}", disabled=True)
+        # --- INTRO (Section 1) ---
+        sections_list_all = outline.get("sections", [])
+        sec1_data = next((s for s in sections_list_all if s.get("num") == 1), {})
+        sec1_heading = sec1_data.get("heading", "The Invitation")
+        st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>Section 1: {sec1_heading}</div>", unsafe_allow_html=True)
 
-        if not st.session_state.anc_assembled_done:
-            all_done = len(approved) >= total_sections
+        if not st.session_state.anc_intro_approved:
+            if not st.session_state.anc_intro_text:
+                with st.spinner("Writing Section 1 — The Invitation..."):
+                    intro = generate_ancient_intro(title, protocol_text, outline, st.session_state.api_key)
+                    st.session_state.anc_intro_text = intro
+                    st.session_state.anc_intro_audit = None
+                st.rerun()
+
+            edited_intro = st.text_area("Section 1", value=st.session_state.anc_intro_text,
+                                         height=300, label_visibility="collapsed", key="anc_intro_area")
+            wc = len(edited_intro.split())
+            st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("↻ Regenerate", key="anc_regen_intro"):
+                    st.session_state.anc_intro_text = ""
+                    st.session_state.anc_intro_audit = None
+                    st.rerun()
+            with col2:
+                if st.button("🔍 Run audit", key="anc_audit_intro"):
+                    with st.spinner("Auditing..."):
+                        st.session_state.anc_intro_audit = audit_section(
+                            edited_intro, {"heading": sec1_heading, "focus": sec1_data.get("focus","")}, 1, st.session_state.api_key
+                        )
+                        st.session_state.anc_intro_text = edited_intro
+                    st.rerun()
+            with col3:
+                if st.button("✓ Approve → Section 2", key="anc_approve_intro"):
+                    st.session_state.anc_intro_text = edited_intro
+                    st.session_state.anc_intro_approved = True
+                    st.session_state.anc_intro_audit = None
+                    st.rerun()
+
+            if st.session_state.anc_intro_audit:
+                _render_audit(st.session_state.anc_intro_audit)
+                audit = st.session_state.anc_intro_audit
+                if audit.get("total_issues", 0) > 0:
+                    st.markdown("")
+                    if st.button("✦ Revise to fix audit issues", key="anc_revise_intro"):
+                        with st.spinner("Revising based on audit..."):
+                            revised = revise_ancient_section_from_audit(
+                                st.session_state.anc_intro_text, audit, title, st.session_state.api_key
+                            )
+                            st.session_state.anc_intro_text = revised
+                            st.session_state.anc_intro_audit = None
+                        st.rerun()
+
+        else:
+            st.markdown(f"<div class='sp-locked-badge'>✓ Section 1 approved ({len(st.session_state.anc_intro_text.split())} words)</div>", unsafe_allow_html=True)
+
+            # --- BODY SECTIONS 2-18 ---
+            if approved:
+                total_words = sum(len(s.split()) for s in approved)
+                st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>{len(approved)} of {total_sections - 1} body sections approved · ~{total_words:,} words</div>", unsafe_allow_html=True)
+                for i, sec_text in enumerate(approved):
+                    sec_data_i = next((s for s in sections_list_all if s.get("num") == i+2), {})
+                    heading_i = sec_data_i.get("heading", f"Section {i+2}")
+                    with st.expander(f"✓ Section {i+2}: {heading_i}"):
+                        st.text_area("", value=sec_text, height=150, label_visibility="collapsed",
+                                     key=f"anc_approved_{i}", disabled=True)
+
+        if not st.session_state.anc_assembled_done and st.session_state.anc_intro_approved:
+            all_done = len(approved) >= (total_sections - 1)
 
             if not all_done:
                 sections_list = outline.get("sections", [])
@@ -963,10 +1027,11 @@ if page == "Ancient Script Builder":
                 st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin:16px 0 8px'>Section {sec_num} of {total_sections}: {current_heading}</div>", unsafe_allow_html=True)
 
                 if not st.session_state.anc_pending:
+                    all_approved_so_far = [st.session_state.anc_intro_text] + approved
                     with st.spinner(f"Writing section {sec_num} of {total_sections}..."):
                         sec_text = generate_ancient_section(
                             title, protocol_text, outline, sec_num,
-                            approved, st.session_state.api_key
+                            all_approved_so_far, st.session_state.api_key
                         )
                         st.session_state.anc_pending = sec_text
                         st.session_state.anc_audit = None
@@ -1030,9 +1095,10 @@ if page == "Ancient Script Builder":
                             st.rerun()
 
             else:
-                # Assemble
+                # Assemble intro + all body sections
                 if not st.session_state.anc_assembled:
-                    assembled = "\n\n".join(approved)
+                    all_parts = [st.session_state.anc_intro_text] + approved
+                    assembled = "\n\n".join(all_parts)
                     st.session_state.anc_assembled = assembled
                     st.session_state.anc_assembled_done = True
                     new_record = {

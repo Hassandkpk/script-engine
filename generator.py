@@ -1018,6 +1018,55 @@ Return ONLY this JSON (keep values short — one sentence max per field):
         return {"section_1": {"heading": "The Invitation", "summary": f"Parse error: {e}"}, "sections": [], "total_sections": 18}
 
 
+def generate_ancient_intro(title: str, protocol_text: str, outline: dict, api_key: str) -> str:
+    """
+    Generate Section 1 (The Invitation) as a standalone intro step.
+    Mirrors generate_intro for Cosmic Horror.
+    """
+    client = anthropic.Anthropic(api_key=api_key.strip())
+    sections = outline.get("sections", [])
+    sec1 = next((s for s in sections if s.get("num") == 1), {})
+    heading = sec1.get("heading", "The Invitation")
+    focus = sec1.get("focus", "")
+    central_argument = outline.get("central_argument", "")
+
+    system = (
+        "You are a meditative ancient history narrator with a documentary sensibility. "
+        "You speak with the patience of geological time and the intellectual weight of philosophical inquiry. "
+        "Warm, curious wisdom mixed with humble wonder. Speak directly to one listener in the dark. "
+        "Use 'you' and 'we'. Think aloud — don't perform. Like a wise elder by a campfire.\n\n"
+        "PUNCTUATION FOR AI VOICEOVER: 70% commas (fast pause). 20% ellipses (slow pause). 10% periods.\n\n"
+        "Output only the section text — no headings, no labels, no commentary."
+    )
+
+    user = (
+        f'Title: "{title}"\n\n'
+        f"Protocol:\n{protocol_text}\n\n"
+        f"Section 1 heading: {heading}\n"
+        f"Focus: {focus}\n"
+        f"Central argument: {central_argument}\n\n"
+        "Write ONLY Section 1 — The Invitation (~600 words).\n\n"
+        "SECTION 1 STRUCTURE — follow this in order:\n"
+        "1. Open immediately on the anchor fact — name it in the first two sentences. "
+        "No atmospheric throat-clearing. The listener clicked for a reason — confirm they are in the right place.\n"
+        "2. Warm greeting, acknowledgment it's late, gratitude for their presence.\n"
+        "3. Expand on the central mystery the title promises — mainstream vs alternative interpretation.\n"
+        "4. Breath pause — ask where they're listening from, invite relaxation.\n"
+        "5. Brief grateful request for likes/subscribes.\n"
+        "6. Extended atmospheric bridge that makes Section 2 unavoidable.\n\n"
+        "Follow the protocol constraints exactly. Output only this section."
+    )
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2000,
+        system=system,
+        messages=[{"role": "user", "content": user}]
+    )
+    raw = msg.content[0].text
+    return apply_ancient_voice_filter(raw, title, api_key)
+
+
 def generate_ancient_section(title: str, protocol_text: str, outline: dict, section_num: int,
                                approved_parts: list, api_key: str) -> str:
     """
