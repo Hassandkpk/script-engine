@@ -766,6 +766,18 @@ ANCIENT_ANCHORS = {
             "anchor": "Göbekli Tepe sits at the precise centre of a 12,000-year-old ecological boundary — the exact line separating wild einkorn wheat from other grasses. Genetic studies of domestic wheat trace its origin to this specific hillside. The sanctuary was built where agriculture would begin. Whether this was intentional, symbolic, or coincidence has not been determined.",
             "domain": "agricultural_origin"
         },
+        {
+            "anchor": "The T-pillars at Göbekli Tepe are carved with human arms, hands, and belts — they are anthropomorphic. They depict beings, not columns. The enclosures were built around these figures, not the other way around. Whoever gathered tens of thousands of hunter-gatherers to build this site did so in service of worshipping specific entities — entities that required 20-tonne stone bodies to properly represent.",
+            "domain": "deity_representation"
+        },
+        {
+            "anchor": "Göbekli Tepe shows the earliest known evidence of organised religion preceding organised society. Every other model of civilisational development assumes agriculture and settlement came first, then religion. Göbekli Tepe inverts this completely — the temple came first, and the settlement grew around it. Religion did not emerge from society. At Göbekli Tepe, society emerged from religion.",
+            "domain": "religion_before_civilisation"
+        },
+        {
+            "anchor": "The deliberate burial of Göbekli Tepe around 8000 BCE coincides precisely with the earliest evidence of large-scale agricultural settlement in the same region. The site was not abandoned — it was sealed. Someone with the authority to organise thousands of people decided the sanctuary should be hidden. The knowledge of what was buried, and why, did not survive in any written record.",
+            "domain": "deliberate_concealment"
+        },
     ],
 
     "The Great Pyramid / Old Kingdom Egypt": [
@@ -788,6 +800,18 @@ ANCIENT_ANCHORS = {
         {
             "anchor": "The internal temperature of the King's Chamber has been measured consistently at 20°C regardless of external temperature, season, or time of day. The granite walls are 2.6 metres thick. The chamber's acoustic resonance frequency is approximately 111Hz — documented to suppress activity in the prefrontal cortex and produce altered states in human subjects at sustained exposure.",
             "domain": "acoustic_chamber"
+        },
+        {
+            "anchor": "The pharaoh in Old Kingdom Egypt was not a ruler who claimed divine favour — he was legally a god. The entire administrative, agricultural, and military apparatus of Egypt existed to serve the god-king's eternal life. Every tax, every harvest, every conscripted labourer was theologically justified as an offering. The state and the religion were not separate institutions. They were the same institution.",
+            "domain": "divine_kingship"
+        },
+        {
+            "anchor": "The Pyramid Texts reserve specific astronomical knowledge — star names, rising times, passage coordinates — exclusively for the dead pharaoh. This knowledge was not public. It was not priestly. It existed in a single copy, inside a sealed tomb, accessible to one person who was no longer alive. The deliberate restriction of astronomical knowledge to the dead king is documented but its purpose has not been explained.",
+            "domain": "restricted_knowledge"
+        },
+        {
+            "anchor": "The priesthood of Amun at Karnak accumulated land, income, and political authority over approximately 500 years until, by 1070 BCE, the High Priest of Amun controlled more agricultural land than the pharaoh. The transfer of power happened entirely through religious office — no coup, no military takeover. The god's administrators became the state's rulers while the pharaoh remained nominally divine.",
+            "domain": "priestly_power_accumulation"
         },
     ],
 
@@ -812,6 +836,22 @@ ANCIENT_ANCHORS = {
             "anchor": "The Antikythera Mechanism (150-100 BCE) is a bronze calculating device that modelled the solar system with 37 interlocking gears accurate enough to predict solar and lunar eclipses 19 years in advance. Nothing of comparable mechanical complexity appears in the archaeological record for the next 1,400 years. The metallurgical and engineering knowledge required to produce it had no documented precedent and left no documented legacy.",
             "domain": "lost_technology"
         },
+        {
+            "anchor": "The Atrahasis Epic (circa 1700 BCE) states explicitly that the Anunnaki created humans — lulu amelu, 'primitive workers' — specifically to perform agricultural labour so the lesser gods would not have to. The text describes a labour strike by the Igigi gods, followed by the decision to create a substitute workforce from clay and divine blood. The justification for human existence in the oldest creation narrative on Earth is: to work so gods do not have to.",
+            "domain": "creation_as_labour_control"
+        },
+        {
+            "anchor": "In Sumerian theology, each city was owned by a specific deity — Ur belonged to Nanna, Nippur to Enlil, Eridu to Enki. The temple was not a place of worship — it was the god's household, and the city's population were the god's servants. The en-priest or entu-priestess was the god's earthly spouse. Taxes were temple offerings. Labour was divine service. The entire economic system was framed as religious obligation.",
+            "domain": "temple_economy_as_control"
+        },
+        {
+            "anchor": "The ME — divine decrees in Sumerian theology — were physical objects kept in Enki's temple at Eridu. They included kingship, priesthood, descent into the underworld, the scribal arts, truth, falsehood, fear, and weeping. Whoever held the ME held legitimate authority over those aspects of human life. The Sumerian myth of Inanna stealing the ME from Enki describes the transfer of civilisational authority as literally stealing sacred objects from a god.",
+            "domain": "divine_authority_objects"
+        },
+        {
+            "anchor": "The Anunnaki in Sumerian texts are described as a council — the Assembly of the Great Gods — who met to issue binding decrees affecting humanity: flood, famine, kingship, law. Enlil alone could convene the assembly. Decisions made in the divine assembly were then announced to humans through the king, who received them in dreams or through oracles. Human law was divine decree. The king did not make laws — he received them.",
+            "domain": "divine_council_law"
+        },
     ],
 
     "Indus Valley Civilisation / Harappa": [
@@ -834,6 +874,14 @@ ANCIENT_ANCHORS = {
         {
             "anchor": "Indus Valley seals depict a figure in a cross-legged seated posture surrounded by animals — identified by some scholars as a proto-Shiva figure, by others as a shaman or ruler. The posture is anatomically identical to later yogic and meditative positions codified in Hindu texts 1,500 years later. Whether this represents continuous cultural transmission or independent reinvention has not been resolved.",
             "domain": "iconographic_continuity"
+        },
+        {
+            "anchor": "The Indus Valley Civilisation had no detectable warrior class, no weapons caches, no fortifications designed for military defence, and no iconography depicting conquest or rulers dominating subjects. Every other Bronze Age civilisation of comparable scale left extensive evidence of elite violence and military hierarchy. The Indus Valley left none. Either it was governed by a form of authority that did not require visible force, or the evidence of that force has not been found.",
+            "domain": "non_military_authority"
+        },
+        {
+            "anchor": "The proto-Shiva seal from Mohenjo-daro — a horned figure seated in yogic posture, surrounded by a tiger, elephant, rhinoceros, and buffalo — appears on seals distributed across the entire civilisation. The same image, unchanged, appears thousands of kilometres apart. In a civilisation with no confirmed central authority, a single religious image achieved total geographic uniformity. Something enforced that consistency.",
+            "domain": "uniform_religious_iconography"
         },
     ],
 
@@ -858,6 +906,18 @@ ANCIENT_ANCHORS = {
             "anchor": "The Phaistos Disc (1700 BCE) is a clay disc from Crete bearing 241 symbols arranged in a spiral, stamped with 45 distinct seal types. It is unique — no other object uses the same symbols. It was found sealed in a ground-floor deposit. It is the only known example of its script. It has not been deciphered. It was manufactured with a stamp-and-repeat technique that implies the symbols were used elsewhere — on objects that have not been found.",
             "domain": "undeciphered_artefact"
         },
+        {
+            "anchor": "Mycenaean kings derived authority from two sources simultaneously: military conquest and divine lineage. Every major Mycenaean dynasty traced its bloodline to a god — Perseus to Zeus, Agamemnon to Tantalus, Achilles to the sea-nymph Thetis. The divine bloodline was not metaphor — it was legal title. A king without divine ancestry had no legitimate claim to rule. The gods did not bless the kings. The kings were the gods' descendants.",
+            "domain": "divine_bloodline_kingship"
+        },
+        {
+            "anchor": "The Eleusinian Mysteries — the most important religious rites in ancient Greece — were conducted in secret for approximately 2,000 years, from circa 1500 BCE to 392 CE. Initiates were forbidden on pain of death to reveal what happened inside. Participants included Plato, Cicero, Marcus Aurelius, and multiple Athenian leaders. The content of the Mysteries has never been fully reconstructed. What the most powerful men in the ancient world were shown, and sworn to silence about, is not known.",
+            "domain": "secret_mystery_religion"
+        },
+        {
+            "anchor": "The Oracle at Delphi (circa 800-390 BCE) was consulted before every major Greek military campaign, colonial expedition, and political decision for 600 years. The oracle's pronouncements were delivered in ambiguous verse by a single woman — the Pythia — seated over a geological fissure emitting ethylene gas. Modern analysis confirms the gas induces dissociative states. The geopolitical decisions of the ancient Mediterranean world were shaped by the pronouncements of a woman in an altered state of consciousness.",
+            "domain": "oracle_political_control"
+        },
     ],
 
     "Ancient Egypt / Dynastic Period": [
@@ -880,6 +940,22 @@ ANCIENT_ANCHORS = {
         {
             "anchor": "The tomb of Seti I (1294 BCE) contains relief carvings in the Abydos temple that, at a certain angle of oblique lighting, appear to show outlines that some observers identify as a helicopter, submarine, and aircraft. Mainstream Egyptology explains these as pareidolia from palimpsest carvings — two sets of hieroglyphs superimposed. High-resolution photogrammetric analysis has not definitively resolved which explanation is correct.",
             "domain": "hieroglyphic_anomaly"
+        },
+        {
+            "anchor": "The pharaoh in Old Kingdom Egypt was not a ruler who claimed divine favour — he was legally a god. The entire administrative, agricultural, and military apparatus of Egypt existed to serve the god-king's eternal life. Every tax, every harvest, every conscripted labourer was theologically justified as an offering. The state and the religion were not separate institutions. They were the same institution.",
+            "domain": "divine_kingship"
+        },
+        {
+            "anchor": "The Book of the Dead (circa 1550 BCE) was a commercial product — spells were manufactured by scribes and sold to families who could afford them. Wealthier families purchased more spells, more elaborate illustrations, and higher-quality papyrus. The afterlife in ancient Egypt was not equal: those who could not afford the correct spells faced a worse fate. Access to divine protection was sold by a priestly class that controlled the means of eternal life.",
+            "domain": "afterlife_as_commerce"
+        },
+        {
+            "anchor": "Akhenaten (1353-1336 BCE) abolished the entire Egyptian pantheon, closed every temple in Egypt, disbanded the priesthood of Amun, and declared a single god — the Aten — whose sole intermediary on Earth was himself. Within two decades of his death, every image of Akhenaten was destroyed, his name removed from monuments, and the old priesthood restored. The world's first recorded monotheism lasted one generation and was then systematically erased.",
+            "domain": "suppressed_monotheism"
+        },
+        {
+            "anchor": "The Hermetic texts — attributed to Hermes Trismegistus — claim to preserve the secret theology of ancient Egypt: that the cosmos is mental, that humanity contains a spark of the divine, and that this knowledge was deliberately hidden from the general population and transmitted only through initiates. Whether these texts encode genuine Egyptian temple doctrine or were composed in Alexandria around 100-300 CE remains debated. The claim that hidden theological knowledge was actively suppressed is the texts' central argument.",
+            "domain": "hermetic_hidden_knowledge"
         },
     ],
 
@@ -904,6 +980,18 @@ ANCIENT_ANCHORS = {
             "anchor": "Palenque's sarcophagus lid (683 CE) shows the Mayan ruler Pakal at the moment of death — falling into Xibalba, the underworld. In 1952, Erich von Däniken argued the lid showed a man piloting a spacecraft. Mainstream archaeologists identify the imagery as standard Mayan cosmological iconography. The same image, reanalysed by contemporary glyph specialists, shows 11 separate identifiable mythological symbols. The two interpretations have never been reconciled in a single definitive paper.",
             "domain": "iconographic_debate"
         },
+        {
+            "anchor": "Maya kings were not political leaders who used religion — they were the religion. The k'uhul ajaw, 'holy lord,' was the physical embodiment of the World Tree connecting underworld to sky. His blood was divine fuel: royal bloodletting ceremonies, in which the king pierced his own tongue or genitals over sacred paper, were required to sustain cosmic order. The king did not rule by force. He ruled because without his blood, the sun would not rise.",
+            "domain": "blood_as_divine_currency"
+        },
+        {
+            "anchor": "The Popol Vuh — the Maya creation text — describes humanity being created three times and destroyed twice. The first humans were made of mud and dissolved. The second were made of wood and were destroyed because they had no memory or reverence for their creators. The third were made of maize and survived — but the gods deliberately limited their vision so they could not see as far as the gods themselves. Human consciousness was intentionally diminished at the moment of creation.",
+            "domain": "intentional_human_limitation"
+        },
+        {
+            "anchor": "Quetzalcoatl — the feathered serpent deity worshipped across Mesoamerica for over 2,000 years — was described in multiple independent traditions as a pale, bearded figure who arrived from the sea, taught astronomy, agriculture, and law, and promised to return. When Hernán Cortés arrived in 1519, the Aztec emperor Moctezuma initially received him as the returning Quetzalcoatl. A pre-existing religious prophecy facilitated the conquest of an empire of millions by 600 men.",
+            "domain": "prophecy_enabling_conquest"
+        },
     ],
 
     "Stonehenge / Megalithic Britain": [
@@ -926,6 +1014,18 @@ ANCIENT_ANCHORS = {
         {
             "anchor": "The acoustic properties of Stonehenge's original complete configuration (sarsen ring + inner horseshoe + bluestones) would have created a specific reverberation time of approximately 0.6 seconds and directed sound inward rather than outward. This is the acoustic signature of a space designed for enclosed group ritual, not outdoor spectacle. The acoustic properties were intentional — they required placing stones of specific heights at specific spacings.",
             "domain": "acoustic_design"
+        },
+        {
+            "anchor": "Isotopic analysis of the Amesbury Archer — a wealthy Bronze Age man buried near Stonehenge around 2300 BCE with the richest grave goods found in Bronze Age Britain — shows he was not British. He was from the Alpine region of central Europe. He carried gold, copper knives, and flint tools of extraordinary quality. He was buried with clear ceremonial honour less than 5 kilometres from Stonehenge. Whoever controlled the monument's construction attracted powerful individuals from across the known world.",
+            "domain": "monument_as_power_centre"
+        },
+        {
+            "anchor": "The Druids — the priestly caste of pre-Roman Britain and Gaul — preserved all religious and legal knowledge exclusively through oral transmission. Writing was forbidden for sacred content. Caesar documented that Druidic training lasted up to 20 years. The Druids controlled justice, religious practice, calendar knowledge, and exemption from military service and taxation. They were the only class in Celtic society that crossed tribal boundaries freely. Information was their power — and they ensured no one else had it.",
+            "domain": "oral_knowledge_monopoly"
+        },
+        {
+            "anchor": "The Rollright Stones, Avebury, Callanish, and dozens of other megalithic sites across Britain share the same astronomical alignment principles as Stonehenge and predate the Roman conquest by over 2,000 years. They were all maintained by the same priestly tradition across generations of populations who had no writing, no centralised government, and no formal communication system. A religious knowledge system survived intact for over 2,000 years across a fragmented tribal landscape. No one recorded how.",
+            "domain": "knowledge_transmission"
         },
     ],
 
@@ -950,6 +1050,18 @@ ANCIENT_ANCHORS = {
             "anchor": "Enuma Elish (circa 1100 BCE), the Babylonian creation epic, describes the cosmos being formed from the body of the defeated chaos dragon Tiamat — her upper half becoming the sky, her lower half the earth, her eyes the sources of the Tigris and Euphrates. Modern reading of the text in light of Mesopotamian geography shows the rivers do emerge from elevations that could be metaphorically described as the locations given. The myth encodes accurate hydrology.",
             "domain": "mythological_geography"
         },
+        {
+            "anchor": "The Code of Hammurabi (1754 BCE) opens with a carved image of Hammurabi receiving the laws directly from the sun god Shamash. The prologue states explicitly that the gods appointed Hammurabi to make justice prevail in the land. The 282 laws that follow — regulating wages, property, marriage, debt, and punishment — are framed not as royal decree but as divine mandate. Human law in Babylon was not created by men. It was received from gods and administered by their chosen king.",
+            "domain": "law_as_divine_mandate"
+        },
+        {
+            "anchor": "The Babylonian New Year festival — the Akitu — lasted 12 days and included a ritual in which the king was stripped of his regalia, struck by the High Priest, and made to kneel before Marduk's statue to confess his sins. If he wept, his reign was confirmed. If he did not, it was taken as a sign of divine disfavour. The most powerful king in the ancient world was annually humiliated before his entire court as proof that his authority came from the god, not from himself.",
+            "domain": "ritual_submission_to_deity"
+        },
+        {
+            "anchor": "Nebuchadnezzar II (605-562 BCE) destroyed the Temple of Solomon in Jerusalem in 587 BCE, deported its priestly class to Babylon, and absorbed Judean religious scholarship into the Babylonian intellectual world. During the Babylonian captivity, Jewish scribes produced or finalised the texts that became the Torah. Multiple scholars have identified direct structural parallels between the Genesis flood account, the Exodus narrative, and earlier Babylonian religious texts. The foundational texts of three world religions were shaped during one empire's forced relocation of one people.",
+            "domain": "religious_transmission_through_conquest"
+        },
     ],
 
     "The Nazca Lines / Ancient Peru": [
@@ -972,6 +1084,14 @@ ANCIENT_ANCHORS = {
         {
             "anchor": "The Nazca plateau contains geoglyphs depicting 70 plant and animal figures, 300 geometric figures, and 800 straight lines. Several of the straight lines extend for 50 kilometres without deviation, crossing hills, ravines, and irregular terrain as if the terrain did not exist. Modern survey confirms the longest lines maintain accuracy to within 0.1 degrees over their full length. The survey method used to achieve this precision has not been identified.",
             "domain": "survey_precision"
+        },
+        {
+            "anchor": "The Inca empire — which absorbed the Nazca region — was governed through a system called mit'a: mandatory labour tribute owed to the state as a religious obligation. Every subject owed the Sapa Inca a portion of their productive time, framed not as taxation but as service to the divine. The Inca ruler was literally the Son of the Sun — Inti Coya. Refusing mit'a was not tax evasion. It was sacrilege.",
+            "domain": "labour_as_religious_obligation"
+        },
+        {
+            "anchor": "The Tiwanaku civilisation (500-1000 CE), which preceded the Inca in the Andean highlands, built the Gateway of the Sun — a single carved andesite block depicting a central figure flanked by 48 winged attendants. The figure is identified by some researchers as Viracocha, the creator god described in multiple Andean traditions as a pale bearded figure who taught civilisation, then departed across the sea promising to return. The same figure, with identical attributes, appears in Aztec, Maya, and coastal Peruvian traditions independently.",
+            "domain": "cross_cultural_deity"
         },
     ],
 }
