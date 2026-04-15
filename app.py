@@ -958,12 +958,16 @@ if page == "Ancient Script Builder":
 
                     for sec in sections:
                         with st.expander(f"Section {sec.get('num','?')}: {sec.get('heading','')}"):
-                            focus = sec.get("focus", "")
-                            if focus:
-                                st.markdown(f"- {focus}")
-                            else:
-                                for bullet in sec.get("bullets", []):
-                                    st.markdown(f"- {bullet}")
+                            if sec.get("argument"):
+                                st.markdown(f"**Argument:** {sec['argument']}")
+                            if sec.get("evidence"):
+                                st.markdown(f"**Evidence:** {sec['evidence']}")
+                            if sec.get("reframe"):
+                                st.markdown(f"**Reframe:** *{sec['reframe']}*")
+                            if not sec.get("argument"):
+                                focus = sec.get("focus", "")
+                                if focus:
+                                    st.markdown(f"- {focus}")
 
                     st.markdown("")
                     col1, col2 = st.columns(2)

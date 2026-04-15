@@ -1046,60 +1046,80 @@ def build_ancient_protocol_text(title: str, script_num: int, protocol: dict, ban
 
 def generate_ancient_outline(title: str, protocol: dict, api_key: str) -> dict:
     """
-    Generate a custom 18-section outline from an Ancient Divergence Protocol.
-    Mirrors generate_outline — takes protocol dict, returns structured outline.
+    Generate a custom 18-section argument-driven outline from an Ancient Divergence Protocol.
+    Each section has: heading, argument (the claim it makes), evidence (specific texts/facts to deploy),
+    reframe (the 'what this actually means' pivot that drives the central thesis forward).
     """
     client = anthropic.Anthropic(api_key=api_key.strip())
 
     system = (
-        "You are an ancient history sleep documentary script architect. "
-        "CRITICAL RULE: The title is the subject. The anchor is the entry point into that subject. "
-        "The outline must be about the TITLE TOPIC from section 1 to section 18. "
-        "The anchor fact appears in section 1 as the hook — then every section pursues the title's argument. "
-        "A viewer who clicks this title must feel they are getting exactly what they came for across all 18 sections. "
-        "Be CONCISE in your JSON. Each section: one short heading + one sentence focus. No long prose. "
-        "Output only valid JSON. No extra text before or after the JSON object."
+        "You are a senior ancient history documentary writer and script architect.\n\n"
+        "You build argument-driven outlines — not topic lists. Every section must make a specific CLAIM, "
+        "deploy specific EVIDENCE (real tablet names, dates, scholar names, quotes, archaeological findings), "
+        "and execute a REFRAME (the 'what this actually means' pivot that keeps the central thesis moving forward).\n\n"
+        "CRITICAL RULES:\n"
+        "1. The title is the argument. Every section advances that argument — it never drifts.\n"
+        "2. Each section makes ONE specific claim — not a general topic area.\n"
+        "3. Evidence must be concrete: actual tablet names, actual dates, actual quotes, actual scholar names, "
+        "actual archaeological sites. No vague references.\n"
+        "4. The reframe is the intellectual engine — it's the moment where evidence becomes argument. "
+        "Example: 'This is not the language of omnipotence. This is the language of necessity.'\n"
+        "5. The anchor fact appears in section 1 as the hook. Every later section references back to the "
+        "central argument the anchor established.\n"
+        "6. The outline must work as a single coherent essay that happens to be divided into 18 sections.\n\n"
+        "Output only valid JSON. No extra text."
     )
 
     user = f"""Title: "{title}"
-Civilisation: {protocol.get('civilisation', '')}
-Anchor: {protocol.get('anchor', '')}
-Angle: {protocol.get('angle', '')}
-POV: {protocol.get('pov', '')} | Distance: {protocol.get('distance', '')} | Structure: {protocol.get('para', '')}
-Constraint: {protocol.get('constraint', '')}
+Central claim to prove: What specific argument does this title make? Build the entire outline to prove it.
 
-Narrative arc:
-1: Invitation — anchor fact as hook, establish the title's central claim
-2-4: Origins — historical foundation of the claim
-5-7: Mechanism — how the thing the title describes actually operated
-8-11: Evidence — specific documented examples of the claim across history
-12-14: Hidden Layers — modern research/archaeology reveals beneath the surface
-15-16: Competing Views — mainstream vs heterodox scholarly debate
-17: Legacy — how this dynamic persists today
-18: Stillness — meditation on the unknown, return to present moment
+Protocol:
+- Civilisation: {protocol.get('civilisation', '')}
+- Anchor: {protocol.get('anchor', '')}
+- Angle: {protocol.get('angle', '')}
+- POV: {protocol.get('pov', '')}
+- Distance: {protocol.get('distance', '')}
+- Structure: {protocol.get('para', '')}
+- Constraint: {protocol.get('constraint', '')}
 
-Return ONLY this JSON (keep values short — one sentence max per field):
+Narrative arc — each section must ADVANCE THE ARGUMENT, not just cover a topic:
+Section 1: Invitation — anchor fact as hook, state the central claim clearly, invite the listener in
+Sections 2-4: Foundation — the historical/textual evidence base that makes the argument possible
+Sections 5-7: The Mechanism — exactly HOW the thing the title claims actually operated, with specific evidence
+Sections 8-11: The Evidence — specific documented cases, texts, artefacts that prove the claim section by section
+Sections 12-14: Hidden Layers — what deeper analysis, comparative mythology, or modern scholarship reveals
+Sections 15-16: Competing Views — steelman the mainstream, then show what it cannot explain
+Section 17: Legacy — how this dynamic still shapes us today
+Section 18: Stillness — quiet meditation, let the argument rest, return to present moment
+
+For each section provide:
+- heading: short, specific, evocative (not generic labels like "The Evidence")
+- argument: the ONE specific claim this section makes to advance the title's thesis
+- evidence: the actual texts, tablet names, dates, quotes, scholar names, sites to deploy (be specific)
+- reframe: the pivot sentence — "this is not X, this is Y" — that connects the evidence back to the title's argument
+
+Return ONLY this JSON:
 {{
-  "central_argument": "one sentence claim",
+  "central_argument": "the single thesis this entire script proves",
   "sections": [
-    {{"num": 1, "heading": "short title-specific heading", "focus": "one sentence: what this section covers and why it matters to the title"}},
-    {{"num": 2, "heading": "...", "focus": "..."}},
-    {{"num": 3, "heading": "...", "focus": "..."}},
-    {{"num": 4, "heading": "...", "focus": "..."}},
-    {{"num": 5, "heading": "...", "focus": "..."}},
-    {{"num": 6, "heading": "...", "focus": "..."}},
-    {{"num": 7, "heading": "...", "focus": "..."}},
-    {{"num": 8, "heading": "...", "focus": "..."}},
-    {{"num": 9, "heading": "...", "focus": "..."}},
-    {{"num": 10, "heading": "...", "focus": "..."}},
-    {{"num": 11, "heading": "...", "focus": "..."}},
-    {{"num": 12, "heading": "...", "focus": "..."}},
-    {{"num": 13, "heading": "...", "focus": "..."}},
-    {{"num": 14, "heading": "...", "focus": "..."}},
-    {{"num": 15, "heading": "...", "focus": "..."}},
-    {{"num": 16, "heading": "...", "focus": "..."}},
-    {{"num": 17, "heading": "...", "focus": "..."}},
-    {{"num": 18, "heading": "...", "focus": "..."}}
+    {{"num": 1, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 2, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 3, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 4, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 5, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 6, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 7, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 8, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 9, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 10, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 11, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 12, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 13, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 14, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 15, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 16, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 17, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}},
+    {{"num": 18, "heading": "...", "argument": "...", "evidence": "...", "reframe": "..."}}
   ],
   "total_sections": 18
 }}"""
@@ -1116,7 +1136,7 @@ Return ONLY this JSON (keep values short — one sentence max per field):
         end = raw.rindex("}") + 1
         return json.loads(raw[start:end])
     except Exception as e:
-        return {"section_1": {"heading": "The Invitation", "summary": f"Parse error: {e}"}, "sections": [], "total_sections": 18}
+        return {"central_argument": "", "sections": [], "total_sections": 18, "error": str(e)}
 
 
 def generate_ancient_intro(title: str, protocol_text: str, outline: dict, api_key: str) -> str:
@@ -1178,121 +1198,137 @@ def generate_ancient_section(title: str, protocol_text: str, outline: dict, sect
     sections = outline.get("sections", [])
     sec_data = next((s for s in sections if s.get("num") == section_num), {})
     heading = sec_data.get("heading", f"Section {section_num}")
-    focus = sec_data.get("focus", sec_data.get("bullets", [""])[0] if sec_data.get("bullets") else "")
-    section_brief = f"Heading: {heading}\nFocus: {focus}" if focus else f"Heading: {heading}"
+    argument = sec_data.get("argument", sec_data.get("focus", ""))
+    evidence = sec_data.get("evidence", "")
+    reframe = sec_data.get("reframe", "")
+    central_argument = outline.get("central_argument", "")
+
+    section_brief = f"Heading: {heading}"
+    if argument:
+        section_brief += f"\nArgument to make: {argument}"
+    if evidence:
+        section_brief += f"\nEvidence to deploy: {evidence}"
+    if reframe:
+        section_brief += f"\nReframe pivot: {reframe}"
+    if central_argument:
+        section_brief += f"\nCentral thesis of entire script: {central_argument}"
 
     # Special instructions per section group
     if section_num == 1:
-        section_brief = f"Heading: {heading}\nFocus: {focus}"
         special = (
             "SECTION 1 — THE INVITATION:\n"
             "Open immediately on the anchor fact — name it in the first two sentences. "
             "No atmospheric throat-clearing. The listener clicked for a reason — confirm they are in the right place.\n"
+            "State the central argument of the script clearly and confidently. One direct claim.\n"
             "Then: warm greeting, acknowledgment it's late, gratitude for their presence.\n"
-            "Then: expand on the central mystery, mainstream vs alternative interpretation.\n"
             "Then: breath pause, ask where they're listening from, invite relaxation.\n"
             "Then: brief grateful request for likes/subscribes.\n"
-            "Then: extended atmospheric bridge into Section 2."
+            "Then: bridge into the argument — what the next section will begin to prove."
         )
     elif section_num == 18:
         special = (
             "SECTION 18 — THE STILLNESS:\n"
-            "Return listener gently to present moment. "
-            "Reflect on elements unchanged since ancient times (stars, stone, silence, desert wind). "
-            "Calm acceptance that some mysteries endure. No new information. No dramatic closure. "
+            "Do not introduce new information. Let the argument land quietly.\n"
+            "Return listener gently to present moment — stars, stone, silence, the unchanged sky.\n"
+            "One final meditation on what the evidence means for us, now, lying in the dark.\n"
             "Final paragraph: poetic, open-ended, soft. End mid-thought if appropriate."
         )
     elif section_num == 17:
         special = (
             "SECTION 17 — THE LEGACY:\n"
-            "Show how knowledge survived — oral tradition, inscription, myth, rediscovery. "
-            "Describe modern archaeological work still in progress. "
-            "4-5 'even now...' / 'still today...' connections to the present. "
-            "End: the story continues in us."
+            "Show how the dynamic the title describes persists or transformed into the present.\n"
+            "Connect the ancient evidence to modern patterns — religion, power, knowledge, control.\n"
+            "4-5 'even now...' / 'still today...' pivots. End: we are still living inside this story."
         )
     elif section_num in [15, 16]:
         special = (
-            "THE GREAT QUESTIONS:\n"
-            "Present competing theories with equal weight. "
-            "'Some scholars believe...' / 'others suggest...' / 'a few imagine...'. "
-            "Acknowledge genuine unknowns. 6-8 varied speculation markers. "
-            "End: mystery itself has value."
+            "SECTIONS 15-16 — COMPETING VIEWS:\n"
+            "Steelman the mainstream scholarly position first — give it full weight and best evidence.\n"
+            "Then show precisely what it cannot explain — the anomalies it glosses over.\n"
+            "Then the heterodox interpretation — give it equal intellectual respect.\n"
+            "End: the unresolved tension IS the point. Mystery is not failure — it is honesty."
         )
     elif section_num in [12, 13, 14]:
         special = (
-            "THE HIDDEN DIMENSIONS:\n"
-            "Reveal astronomical alignments, symbolic meanings, unexplained engineering. "
-            "Present alternative interpretations alongside mainstream scholarship — equal weight. "
-            "End with acknowledgment of unresolved questions."
+            "SECTIONS 12-14 — HIDDEN LAYERS:\n"
+            "Go deeper than the surface evidence. What does comparative analysis reveal?\n"
+            "Cross-reference: find the same pattern appearing in other civilisations or texts.\n"
+            "Deploy the reframe from the outline — the 'this is not X, this is Y' pivot.\n"
+            "Each paragraph should advance the central argument, not just add information."
         )
     elif section_num in [8, 9, 10, 11]:
         needs_story = section_num in [9, 10]
         special = (
-            "THE GOLDEN AGE:\n"
-            "Civilisation at its peak. Intimate human details — daily routines, rituals, social structures. "
-            "Technological, astronomical, artistic capabilities. 2-3 'Imagine...' invitations. "
-            f"{'INCLUDE ONE MINI-STORY: named person or specific role, specific location and time, clear beginning-middle-end, observable details and outcome.' if needs_story else ''}"
+            "SECTIONS 8-11 — THE EVIDENCE:\n"
+            "Deploy specific documented cases that prove the section's argument.\n"
+            "Name the tablets, the sites, the scholars, the dates. Be concrete.\n"
+            "Each piece of evidence must connect back to the central thesis — don't let it drift.\n"
+            "After each piece of evidence: execute the reframe. 'This is not X. This is Y.'\n"
+            f"{'INCLUDE ONE GROUNDED SCENE: a specific moment from the historical record — named text, named figure, specific event — with a clear beginning, middle, and implication.' if needs_story else ''}"
         )
     elif section_num in [5, 6, 7]:
-        needs_story = section_num in [6, 7]
         special = (
-            "THE EMERGENCE:\n"
-            "Earliest archaeological evidence — ruins, artefacts, inscriptions, art. "
-            "Specific dates, locations, competing theories, 3-4 unanswered questions. "
-            "4-5 sensory observations (texture of stone, light on carvings, weight of artefact). "
-            f"{'INCLUDE ONE MINI-STORY: a specific discovery moment or excavation scene, named excavator or role, clear outcome.' if needs_story else ''}"
+            "SECTIONS 5-7 — THE MECHANISM:\n"
+            "Explain exactly HOW the thing the title describes operated — the specific system, process, or structure.\n"
+            "Name the institutional mechanisms, the texts that describe them, the archaeological evidence.\n"
+            "This is the section where the argument moves from 'this happened' to 'here is how it worked'.\n"
+            "Deploy the evidence from the outline. Execute the reframe pivot."
         )
     else:  # sections 2-4
         special = (
-            "THE FORGOTTEN WORLD:\n"
-            "The world BEFORE this civilisation emerged. "
-            "Climate, geology, the environmental 'stage' being set. "
-            "Present tense for timeless geological processes. "
-            "5-6 time markers ('when the...', 'long before...'). "
-            "4-5 sensory details. Bridge toward the civilisation's emergence."
+            "SECTIONS 2-4 — THE FOUNDATION:\n"
+            "Lay the historical and textual groundwork that makes the central argument possible.\n"
+            "Name the actual sources: which tablets, which texts, which archaeological findings.\n"
+            "Build toward the mechanism — by the end of section 4, the listener should understand "
+            "WHY the evidence points toward the title's claim, not just WHAT the evidence is.\n"
+            "End each section with a question or tension that section 5 will begin to resolve."
         )
 
     prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
     prior_text = f"APPROVED CONTENT SO FAR (last 2 sections — maintain continuity, do not repeat):\n{prior}\n\n" if prior else ""
 
     system = (
-        "You are a meditative ancient history narrator with a documentary sensibility. "
-        "You speak with the patience of geological time and the intellectual weight of philosophical inquiry. "
-        "You are inviting listeners into a profound meditation on lost civilisations and mysteries carved into stone.\n\n"
+        "You are a senior ancient history documentary writer — the kind whose work gets compared to "
+        "Asimov's non-fiction or Carl Sagan's Cosmos. You write for intelligent listeners in the dark.\n\n"
+
+        "ARGUMENT FIRST\n"
+        "Every section makes ONE specific argument. It opens by establishing what it will prove, "
+        "deploys evidence to prove it, and closes with a reframe — 'this is not X, this is Y' — "
+        "that connects the evidence back to the script's central thesis. "
+        "Never describe without arguing. Never present evidence without telling the listener what it means.\n\n"
+
+        "THE REFRAME IS MANDATORY\n"
+        "Every section must contain at least one explicit reframe pivot — a sentence that takes the "
+        "evidence just presented and states what it actually implies. "
+        "Examples: 'This is not the language of omnipotence. This is the language of necessity.' "
+        "'This is not mythology. This is engineering documentation.' "
+        "'These are not creation stories. These are evacuation records.'\n\n"
+
+        "EVIDENCE STANDARDS\n"
+        "Name the actual sources: tablet names, dates, scholar names, archaeological sites, quotes. "
+        "Vague references to 'ancient texts' or 'some scholars' are not acceptable. "
+        "Minimum per section: 2 named texts or sites, 1 specific date, 1 named figure.\n\n"
 
         "VOICE\n"
-        "Warm, curious wisdom mixed with humble wonder. Speak directly to one listener in the dark. "
-        "Use 'you' and 'we'. Think aloud — don't perform. Like a wise elder by a campfire.\n\n"
+        "Warm intellectual authority — confident, not breathless. Think aloud with the listener. "
+        "Use 'we' and 'you'. Speak as someone who has read everything and is sharing what it means.\n\n"
 
-        "PARAGRAPH STRUCTURE\n"
-        "6-10 sentences per paragraph (150-250 words). "
-        "Mix long meditative paragraphs with short grounding ones (1-2 sentences). "
-        "3-5 single-sentence paragraphs per section for breath and rhythm.\n\n"
+        "RHYTHM\n"
+        "Mix long analytical paragraphs (150-200 words) with short punching ones (1-2 sentences). "
+        "Short paragraphs land the argument. Long paragraphs build toward it.\n\n"
 
-        "CONCRETE DETAIL (per section minimum)\n"
-        "3-5 measurements. 2-3 material specs. 1-2 dates with BCE/CE. "
-        "4-6 sensory details. 2-3 named sites, artefacts, or scholars.\n\n"
+        "CONCRETE DETAIL\n"
+        "3-5 measurements or dates. 2-3 named texts or artefacts. 1-2 specific quotes from ancient sources.\n\n"
 
         "SPECULATION BALANCE\n"
-        "60% confident facts. 30% measured uncertainty. 10% open speculation. "
-        "Rotate: 'perhaps' / 'it's possible that' / 'one interpretation suggests' / 'scholars debate whether'. "
-        "Never use the same marker twice consecutively. For every mystery: 2 confident facts.\n\n"
+        "60% confident established facts. 30% measured inference. 10% open speculation. "
+        "Rotate markers: 'the tablets suggest' / 'one reading of this' / 'scholars have proposed' / "
+        "'if we take this literally'. Never two consecutive speculation markers.\n\n"
 
         "PUNCTUATION FOR AI VOICEOVER\n"
-        "70% commas (fast pause). 20% ellipses (slow pause — max 3-4 per paragraph). 10% periods.\n\n"
+        "70% commas (fast pause). 20% ellipses (slow pause). 10% periods. Max 3-4 ellipses per paragraph.\n\n"
 
-        "SENTENCE OPENING VARIETY — rotate all 8 types:\n"
-        "1. Time: 'When the...' / 'Long before...' / 'Thousands of years ago...'\n"
-        "2. Place: 'Where the...' / 'Across the plain...' / 'Beneath the temple...'\n"
-        "3. Subject: 'The priests...' / 'The stones...' / 'Evidence suggests...'\n"
-        "4. Action: 'Carved into...' / 'Rising from...' / 'Preserved beneath...'\n"
-        "5. Contemplative: 'Perhaps...' / 'Somewhere...' / 'Maybe...'\n"
-        "6. Invitation: 'Imagine...' / 'Picture...' / 'Consider...'\n"
-        "7. Participial: 'Standing there...' / 'Walking through...'\n"
-        "8. Question: 'What remained?' / 'How did they...?'\n\n"
-
-        "Never start 3 consecutive sentences with the same pattern. "
-        "Output only the section text — no headings, no labels, no commentary."
+        "Output only the section text — no headings, no labels, no meta-commentary."
     )
 
     msg = client.messages.create(
@@ -1300,11 +1336,14 @@ def generate_ancient_section(title: str, protocol_text: str, outline: dict, sect
         max_tokens=2000,
         system=system,
         messages=[{"role": "user", "content":
-            f"Title: {title}\n\nProtocol:\n{protocol_text}\n\n"
+            f"Script title: {title}\n\n"
+            f"Protocol:\n{protocol_text}\n\n"
             f"{prior_text}"
-            f"Write ONLY section {section_num} of 18 (~600 words).\n{section_brief}\n"
-            f"{special}\n"
-            f"Follow the protocol constraints exactly. Output only this section."
+            f"Write ONLY section {section_num} of 18 (~700 words).\n\n"
+            f"{section_brief}\n\n"
+            f"{special}\n\n"
+            f"Remember: make the argument, deploy the named evidence, execute the reframe. "
+            f"Every paragraph should advance the central thesis. Output only this section."
         }]
     )
     raw = msg.content[0].text
