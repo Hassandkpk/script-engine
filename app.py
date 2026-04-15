@@ -779,12 +779,17 @@ if page == "Ancient Script Builder":
                                     st.session_state.anc_custom_anchor = {}
                                     st.rerun()
                         else:
-                            if st.button("Generate custom anchor →", key="anc_gen_custom"):
+                            if not st.session_state.api_key:
+                                st.error("API key not set — add it in the sidebar first.")
+                            elif st.button("Generate custom anchor →", key="anc_gen_custom"):
                                 with st.spinner("Analysing title and designing anchor..."):
                                     result = generate_custom_anchor_for_title(
                                         st.session_state.anc_title, st.session_state.api_key
                                     )
-                                    st.session_state.anc_custom_anchor = result
+                                    if result.get("reasoning", "").startswith("Generation failed"):
+                                        st.error(f"Anchor generation failed: {result['reasoning']}")
+                                    else:
+                                        st.session_state.anc_custom_anchor = result
                                 st.rerun()
 
                     else:  # Manual
