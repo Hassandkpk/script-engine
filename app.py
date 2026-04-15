@@ -13,7 +13,9 @@ st.set_page_config(
 )
 
 from data import ANCHORS, ANGLES, POVS, DISTANCES, PARAS, CONSTRAINTS, DEFAULT_BANS
-from storage import load_data, save_banned, save_script, load_recent_fingerprints, load_channel, save_channel
+from storage import (load_data, save_banned, save_script, load_recent_fingerprints, load_channel, save_channel,
+                     load_ancient_data, save_ancient_script, load_ancient_fingerprints,
+                     load_ancient_channel, save_ancient_channel)
 from generator import (generate_script, generate_titles, generate_protocol_from_title,
                        build_protocol_text, generate_section, generate_outline,
                        check_outline_uniqueness, generate_intro, generate_body_section,
@@ -360,6 +362,7 @@ h1, h2, h3 {
 """, unsafe_allow_html=True)
 
 data = load_data()
+ancient_data = load_ancient_data()
 
 if 'anchor' not in st.session_state:
     st.session_state.anchor = None
@@ -465,6 +468,8 @@ if 'page_override' not in st.session_state:
     st.session_state.page_override = None             # 1=discover, 2=select+title, 3=concept check, 4=proceed
 if 'channel' not in st.session_state:
     st.session_state.channel = load_channel()
+if 'anc_channel' not in st.session_state:
+    st.session_state.anc_channel = load_ancient_channel()
 if 'concept_result' not in st.session_state:
     st.session_state.concept_result = None
 if 'api_key' not in st.session_state:
@@ -697,17 +702,18 @@ if page == "Ancient Script Builder":
                 else:
                     st.session_state.anc_title = anc_title_input.strip()
                     yt_key = get_youtube_api_key()
-                    if st.session_state.channel.get("channel_id") and yt_key:
-                        with st.spinner(f"Checking against {st.session_state.channel.get('channel_name','your channel')}..."):
+                    anc_ch = st.session_state.anc_channel
+                    if anc_ch.get("channel_id") and yt_key:
+                        with st.spinner(f"Checking against {anc_ch.get('channel_name','your channel')}..."):
                             try:
-                                videos = get_channel_videos(st.session_state.channel["channel_id"], yt_key)
+                                videos = get_channel_videos(anc_ch["channel_id"], yt_key)
                                 result = check_concept(anc_title_input.strip(), videos, st.session_state.api_key)
                                 st.session_state.anc_concept_result = result
                             except Exception as e:
                                 st.warning(f"Concept check skipped: {e}")
                                 st.session_state.anc_concept_result = {"status": "green", "reason": "Check skipped.", "matches": []}
                     else:
-                        st.session_state.anc_concept_result = {"status": "green", "reason": "No channel linked — skipping check.", "matches": []}
+                        st.session_state.anc_concept_result = {"status": "green", "reason": "No Ancient Stories channel linked — go to Channel Settings to link one.", "matches": []}
                     st.rerun()
 
             if st.session_state.anc_concept_result:
@@ -822,10 +828,10 @@ if page == "Ancient Script Builder":
                         st.markdown(f"<div style='background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:12px 16px;margin-bottom:12px'><div style='font-size:12px;font-weight:600;color:#7c3aed;margin-bottom:4px'>ANCHOR — {ca.get('civilisation','')}</div><div style='font-size:14px;color:#111;line-height:1.6'>{ca.get('anchor','')}</div></div>", unsafe_allow_html=True)
 
                     if st.button("Generate protocol →", key="anc_gen_protocol"):
-                        banned = data.get("banned", [])
+                        banned = ancient_data.get("banned", [])
                         preset = st.session_state.anc_custom_anchor if st.session_state.anc_anchor_mode in ("custom", "manual") else None
                         with st.spinner("Building protocol..."):
-                            fingerprints = load_recent_fingerprints(15)
+                            fingerprints = load_ancient_fingerprints(15)
                             suggested = generate_ancient_protocol_from_title(
                                 st.session_state.anc_title, banned,
                                 st.session_state.api_key,
@@ -984,7 +990,7 @@ if page == "Ancient Script Builder":
         if st.session_state.anc_step == 4:
             if not st.session_state.anc_uniqueness:
                 with st.spinner("Checking outline against past scripts..."):
-                    past = data.get("scripts", [])
+                    past = ancient_data.get("scripts", [])
                     result = check_outline_uniqueness(
                         st.session_state.anc_title, st.session_state.anc_outline,
                         past, st.session_state.api_key
@@ -1206,7 +1212,7 @@ if page == "Ancient Script Builder":
                         "word_target": "15,000 words (ancient stories)",
                         "tone": "meditative",
                     }
-                    save_script(new_record)
+                    save_ancient_script(new_record)
                     st.rerun()
 
         if st.session_state.anc_assembled_done and st.session_state.anc_assembled:
@@ -2206,7 +2212,7 @@ elif page == "Script History":
     st.markdown("<div class='sp-section-label'>All saved scripts — sorted newest first</div>", unsafe_allow_html=True)
     st.markdown("")
 
-    scripts = data.get("scripts", [])
+    scripts = ancient_data.get("scripts", []) if st.session_state.niche == "Ancient Stories" else data.get("scripts", [])
     if not scripts:
         st.markdown("<div style='color:#aaaaaa;font-size:13px;padding:40px 0;'>No scripts saved yet. Generate and save your first one.</div>", unsafe_allow_html=True)
     else:
@@ -2290,10 +2296,15 @@ elif page == "Channel Settings":
 
     yt_key = get_youtube_api_key()
     if not yt_key:
-        st.warning("⚠ Add your YOUTUBE_API_KEY to Streamlit secrets to enable concept checking. See the README for instructions.")
+        st.warning("⚠ Add your YOUTUBE_API_KEY to Streamlit secrets to enable concept checking.")
 
-    # Show saved channel
-    ch = st.session_state.channel
+    # Determine which niche we're in and use the right channel + save function
+    _is_ancient = st.session_state.niche == "Ancient Stories"
+    ch = st.session_state.anc_channel if _is_ancient else st.session_state.channel
+    _niche_label = "Ancient Stories" if _is_ancient else "Cosmic Horror"
+
+    st.markdown(f"<div style='font-size:13px;font-weight:600;color:#7c3aed;margin-bottom:10px'>Niche: {_niche_label}</div>", unsafe_allow_html=True)
+
     if ch.get("channel_name"):
         st.markdown(f"<div class='sp-locked-badge'>✓ Linked: {ch['channel_name']} ({ch.get('channel_url','')})</div>", unsafe_allow_html=True)
         st.markdown("")
@@ -2319,8 +2330,12 @@ elif page == "Channel Settings":
                     if not channel_id:
                         st.error("Could not find channel. Try the full YouTube URL e.g. https://youtube.com/@YourChannel")
                     else:
-                        save_channel(channel_id, channel_input.strip(), channel_name)
-                        st.session_state.channel = {"channel_id": channel_id, "channel_url": channel_input.strip(), "channel_name": channel_name}
+                        if _is_ancient:
+                            save_ancient_channel(channel_id, channel_input.strip(), channel_name)
+                            st.session_state.anc_channel = {"channel_id": channel_id, "channel_url": channel_input.strip(), "channel_name": channel_name}
+                        else:
+                            save_channel(channel_id, channel_input.strip(), channel_name)
+                            st.session_state.channel = {"channel_id": channel_id, "channel_url": channel_input.strip(), "channel_name": channel_name}
                         st.success(f"✓ Channel saved: {channel_name}")
                         st.rerun()
                 except Exception as e:
