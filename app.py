@@ -21,7 +21,8 @@ from generator import (generate_script, generate_titles, generate_protocol_from_
                        discover_topics, generate_title_formats,
                        generate_ancient_protocol_from_title, build_ancient_protocol_text,
                        generate_ancient_outline, generate_ancient_intro,
-                       generate_ancient_section, revise_ancient_section_from_audit)
+                       generate_ancient_section, revise_ancient_section_from_audit,
+                       generate_custom_anchor_for_title)
 from exporter import export_pdf, export_docx
 from channel import resolve_channel_id, get_channel_videos, check_concept, get_youtube_api_key
 
@@ -494,6 +495,12 @@ if 'anc_outline_approved' not in st.session_state:
     st.session_state.anc_outline_approved = False
 if 'anc_uniqueness' not in st.session_state:
     st.session_state.anc_uniqueness = None
+if 'anc_anchor_mode' not in st.session_state:
+    st.session_state.anc_anchor_mode = None   # "catalogue" | "custom" | "manual"
+if 'anc_custom_anchor' not in st.session_state:
+    st.session_state.anc_custom_anchor = {}   # result from generate_custom_anchor_for_title
+if 'anc_anchor_confirmed' not in st.session_state:
+    st.session_state.anc_anchor_confirmed = False
 if 'anc_intro_text' not in st.session_state:
     st.session_state.anc_intro_text = ""
 if 'anc_intro_approved' not in st.session_state:
@@ -662,6 +669,7 @@ if page == "Ancient Script Builder":
         if st.button("↺ Start over", key="anc_reset"):
             for k in ['anc_step','anc_title','anc_concept_result','anc_protocol','anc_protocol_text',
                       'anc_outline','anc_outline_approved','anc_uniqueness',
+                      'anc_anchor_mode','anc_custom_anchor','anc_anchor_confirmed',
                       'anc_intro_text','anc_intro_approved','anc_intro_audit',
                       'anc_sections','anc_pending','anc_section_num','anc_audit',
                       'anc_assembled','anc_assembled_done']:
@@ -736,16 +744,97 @@ if page == "Ancient Script Builder":
 
         if st.session_state.anc_step == 2:
             if not st.session_state.anc_protocol:
-                if st.button("Generate protocol →", key="anc_gen_protocol"):
-                    banned = data.get("banned", [])
-                    with st.spinner("Selecting anchor from catalogue and building protocol..."):
-                        fingerprints = load_recent_fingerprints(15)
-                        suggested = generate_ancient_protocol_from_title(
-                            st.session_state.anc_title, banned,
-                            st.session_state.api_key, recent_fingerprints=fingerprints
+
+                # ---- ANCHOR SELECTION ----
+                if not st.session_state.anc_anchor_confirmed:
+                    st.markdown("<div style='font-size:14px;font-weight:600;color:#111;margin-bottom:10px'>Choose how to set your reality anchor:</div>", unsafe_allow_html=True)
+
+                    anchor_mode = st.radio(
+                        "Anchor mode",
+                        options=["From catalogue", "Custom (AI designs for this title)", "Manual (I'll write it)"],
+                        label_visibility="collapsed",
+                        key="anc_anchor_radio"
+                    )
+
+                    if anchor_mode == "From catalogue":
+                        st.markdown("<div style='font-size:13px;color:#666;margin-top:6px'>AI picks the best matching anchor from the 80-anchor catalogue.</div>", unsafe_allow_html=True)
+                        if st.button("Use catalogue anchor →", key="anc_mode_catalogue"):
+                            st.session_state.anc_anchor_mode = "catalogue"
+                            st.session_state.anc_anchor_confirmed = True
+                            st.rerun()
+
+                    elif anchor_mode == "Custom (AI designs for this title)":
+                        st.markdown("<div style='font-size:13px;color:#666;margin-top:6px'>AI analyses your title and designs a bespoke anchor purpose-built for this specific argument.</div>", unsafe_allow_html=True)
+                        if st.session_state.anc_custom_anchor:
+                            ca = st.session_state.anc_custom_anchor
+                            st.markdown(f"<div style='background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:12px 16px;margin:10px 0'><div style='font-size:12px;font-weight:600;color:#7c3aed;margin-bottom:4px'>CUSTOM ANCHOR — {ca.get('civilisation','')}</div><div style='font-size:14px;color:#111;line-height:1.6'>{ca.get('anchor','')}</div><div style='font-size:12px;color:#888;margin-top:6px;font-style:italic'>{ca.get('reasoning','')}</div></div>", unsafe_allow_html=True)
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("Use this anchor →", key="anc_mode_custom_confirm"):
+                                    st.session_state.anc_anchor_mode = "custom"
+                                    st.session_state.anc_anchor_confirmed = True
+                                    st.rerun()
+                            with col2:
+                                if st.button("↻ Generate another", key="anc_mode_custom_regen"):
+                                    st.session_state.anc_custom_anchor = {}
+                                    st.rerun()
+                        else:
+                            if st.button("Generate custom anchor →", key="anc_gen_custom"):
+                                with st.spinner("Analysing title and designing anchor..."):
+                                    result = generate_custom_anchor_for_title(
+                                        st.session_state.anc_title, st.session_state.api_key
+                                    )
+                                    st.session_state.anc_custom_anchor = result
+                                st.rerun()
+
+                    else:  # Manual
+                        st.markdown("<div style='font-size:13px;color:#666;margin-top:6px'>Write your own anchor — a real verifiable fact that opens your title's argument.</div>", unsafe_allow_html=True)
+                        manual_anchor_text = st.text_area(
+                            "Your anchor", height=100,
+                            placeholder="e.g. The Atrahasis Epic (1700 BCE) states that humans were created specifically to perform agricultural labour so the Anunnaki gods would not have to...",
+                            label_visibility="collapsed", key="anc_manual_anchor_input"
                         )
-                        st.session_state.anc_protocol = suggested
-                    st.rerun()
+                        manual_civ = st.text_input("Civilisation / site", placeholder="e.g. Sumerian Civilisation / Mesopotamia", label_visibility="collapsed", key="anc_manual_civ_input")
+                        if st.button("Use this anchor →", key="anc_mode_manual_confirm"):
+                            if manual_anchor_text.strip():
+                                st.session_state.anc_custom_anchor = {
+                                    "anchor": manual_anchor_text.strip(),
+                                    "civilisation": manual_civ.strip() or "Unknown",
+                                    "anchor_domain": "manual",
+                                    "reasoning": "Manually entered by user."
+                                }
+                                st.session_state.anc_anchor_mode = "manual"
+                                st.session_state.anc_anchor_confirmed = True
+                                st.rerun()
+                            else:
+                                st.error("Enter your anchor text first.")
+
+                # ---- PROTOCOL GENERATION ----
+                else:
+                    # Show confirmed anchor before generating
+                    if st.session_state.anc_anchor_mode in ("custom", "manual"):
+                        ca = st.session_state.anc_custom_anchor
+                        st.markdown(f"<div style='background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:12px 16px;margin-bottom:12px'><div style='font-size:12px;font-weight:600;color:#7c3aed;margin-bottom:4px'>ANCHOR — {ca.get('civilisation','')}</div><div style='font-size:14px;color:#111;line-height:1.6'>{ca.get('anchor','')}</div></div>", unsafe_allow_html=True)
+
+                    if st.button("Generate protocol →", key="anc_gen_protocol"):
+                        banned = data.get("banned", [])
+                        preset = st.session_state.anc_custom_anchor if st.session_state.anc_anchor_mode in ("custom", "manual") else None
+                        with st.spinner("Building protocol..."):
+                            fingerprints = load_recent_fingerprints(15)
+                            suggested = generate_ancient_protocol_from_title(
+                                st.session_state.anc_title, banned,
+                                st.session_state.api_key,
+                                recent_fingerprints=fingerprints,
+                                preset_anchor=preset
+                            )
+                            st.session_state.anc_protocol = suggested
+                        st.rerun()
+
+                    if st.button("← Change anchor", key="anc_change_anchor"):
+                        st.session_state.anc_anchor_confirmed = False
+                        st.session_state.anc_custom_anchor = {}
+                        st.session_state.anc_anchor_mode = None
+                        st.rerun()
             else:
                 p = st.session_state.anc_protocol
                 if p.get("reasoning"):

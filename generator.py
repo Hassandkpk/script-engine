@@ -787,8 +787,65 @@ def apply_ancient_voice_filter(raw_script: str, title: str, api_key: str) -> str
     return message.content[0].text
 
 
+def generate_custom_anchor_for_title(title: str, api_key: str) -> dict:
+    """
+    Analyse the video title and design a bespoke reality anchor — a real verifiable
+    archaeological or historical fact purpose-built to open this specific argument.
+    Returns dict with anchor, civilisation, anchor_domain, reasoning.
+    """
+    client = anthropic.Anthropic(api_key=api_key.strip())
+
+    system = (
+        "You are an ancient history research specialist. "
+        "Your job is to find or construct the single most powerful real verifiable fact "
+        "that directly opens the specific argument a video title is making.\n\n"
+        "RULES:\n"
+        "- The anchor must be 100% factually accurate and verifiable.\n"
+        "- It must be about the SAME subject as the title — not just the same civilisation.\n"
+        "- It must open the argument, not be a tangent to it.\n"
+        "- It must be concrete: dates, measurements, names, tablet numbers, or documented events.\n"
+        "- It must end on an open question or unresolved tension.\n"
+        "- 2-4 sentences. Dense with specific detail.\n"
+        "- Do NOT use anchors from generic mystery archaeology — the fact must directly serve the title's claim.\n"
+        "Output only valid JSON."
+    )
+
+    user = (
+        f'Video title: "{title}"\n\n'
+        f"Analyse what argument this title is making. Then identify the single most relevant "
+        f"real verifiable historical or archaeological fact that directly opens that argument.\n\n"
+        f"Return JSON:\n"
+        f'{{\n'
+        f'  "anchor": "The full anchor text — 2-4 sentences, dense with specific verifiable detail, ending on open tension",\n'
+        f'  "civilisation": "The civilisation or site this anchor belongs to",\n'
+        f'  "anchor_domain": "short_snake_case_domain_label",\n'
+        f'  "reasoning": "One sentence: why this specific fact is the best entry point for this title\'s argument"\n'
+        f'}}\n\nReturn only the JSON object.'
+    )
+
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=800,
+            system=system,
+            messages=[{"role": "user", "content": user}]
+        )
+        raw = msg.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        return json.loads(raw[start:end])
+    except Exception as e:
+        return {
+            "anchor": "",
+            "civilisation": "",
+            "anchor_domain": "custom",
+            "reasoning": f"Generation failed: {e}"
+        }
+
+
 def generate_ancient_protocol_from_title(title: str, banned: list, api_key: str,
-                                          recent_fingerprints: list = None) -> dict:
+                                          recent_fingerprints: list = None,
+                                          preset_anchor: dict = None) -> dict:
     """
     Generate a Divergence Protocol for the Ancient Stories niche.
     Uses ANCIENT_ANCHORS catalogue — same architecture as generate_protocol_from_title.
@@ -821,49 +878,83 @@ def generate_ancient_protocol_from_title(title: str, banned: list, api_key: str,
                 + "\n".join(history_lines[:10]) + "\n\n"
             )
 
-    # Build anchor catalogue
-    anchor_catalogue = []
-    for civ, anchors in ANCIENT_ANCHORS.items():
-        anchor_catalogue.append(f"\n{civ}:")
-        for i, a in enumerate(anchors):
-            recently_used = any(a["anchor"][:60] in used for used in used_anchors)
-            flag = " [RECENTLY USED — avoid]" if recently_used else ""
-            short = a["anchor"][:100].rstrip()
-            anchor_catalogue.append(f"  {i+1}. [{a['domain']}]{flag} {short}")
-    anchor_list = "\n".join(anchor_catalogue)
+    # If a preset anchor is provided, skip catalogue selection
+    if preset_anchor and preset_anchor.get("anchor"):
+        anchor_context = (
+            f"PRESET ANCHOR (already chosen by user — do not change it):\n"
+            f"Anchor: {preset_anchor['anchor']}\n"
+            f"Civilisation: {preset_anchor.get('civilisation', 'Unknown')}\n\n"
+        )
+        system = (
+            "You are an expert ancient history YouTube script architect specialising in meditative "
+            "sleep documentary content for ages 45-65+.\n\n"
+            "A reality anchor has already been chosen. Your job is to build the rest of the "
+            "divergence protocol around it: angle, POV, distance, paragraph structure, constraint.\n\n"
+            "STRUCTURAL ROTATION RULE: Choose POV, distance, para structure, and constraint "
+            "not appearing in recent scripts. Every script must feel structurally different.\n\n"
+            "Output only valid JSON."
+        )
+        user = (
+            f'Video title: "{title}"\n\n'
+            f"{history_text}"
+            f"Manual banned structural moves:\n{banned_text}\n\n"
+            f"{anchor_context}"
+            f"Return JSON:\n"
+            f'{{\n'
+            f'  "civilisation": "{preset_anchor.get("civilisation", "")}",\n'
+            f'  "anchor": "{preset_anchor["anchor"]}",\n'
+            f'  "anchor_domain": "{preset_anchor.get("anchor_domain", "custom")}",\n'
+            f'  "angle": "One sentence — the specific lens making this anchor feel profound and immediate in the dark. No colon.",\n'
+            f'  "pov": "One of: second person | first person plural (we) | third person omniscient restrained | false documentary (field notes) | nested narration | no narrator (pure phenomena) | first person singular dissolving into report | second person plural",\n'
+            f'  "distance": "One of: maximum intimacy | forensic distance | historical distance | dissolving distance | unreliable proximity | absolute removal",\n'
+            f'  "para": "One of: paragraphs compress as script progresses | alternating long/short rhythm | single unbroken block | each paragraph shorter than previous | fragments only | normal prose fragmenting in final third | paragraphs expand as script progresses | two sentences per paragraph maximum",\n'
+            f'  "constraint": "One specific hard constraint not in structural history above",\n'
+            f'  "reasoning": "One sentence why this anchor serves this title and this audience"\n'
+            f'}}\n\nReturn only the JSON object.'
+        )
+    else:
+        # Build anchor catalogue for catalogue-based selection
+        anchor_catalogue = []
+        for civ, anchors in ANCIENT_ANCHORS.items():
+            anchor_catalogue.append(f"\n{civ}:")
+            for i, a in enumerate(anchors):
+                recently_used = any(a["anchor"][:60] in used for used in used_anchors)
+                flag = " [RECENTLY USED — avoid]" if recently_used else ""
+                short = a["anchor"][:100].rstrip()
+                anchor_catalogue.append(f"  {i+1}. [{a['domain']}]{flag} {short}")
+        anchor_list = "\n".join(anchor_catalogue)
 
-    system = (
-        "You are an expert ancient history YouTube script architect specialising in meditative "
-        "sleep documentary content for ages 45-65+.\n\n"
-        "You generate divergence protocols — pre-script briefs ensuring each script is structurally "
-        "unique and grounded in a specific real verifiable archaeological or historical fact.\n\n"
-        "ANCHOR RULE: Choose ONLY from the provided Ancient Anchor Catalogue. "
-        "Do not invent anchors. Every anchor is real, verifiable, and immediately graspable in the dark. "
-        "If the title references a specific civilisation or site, prioritise that civilisation's anchors. "
-        "Avoid anchors flagged [RECENTLY USED].\n\n"
-        "STRUCTURAL ROTATION RULE: Choose POV, distance, para structure, and constraint "
-        "not appearing in recent scripts. Every script must feel structurally different.\n\n"
-        "Output only valid JSON."
-    )
-
-    user = (
-        f'Video title: "{title}"\n\n'
-        f"{history_text}"
-        f"Manual banned structural moves:\n{banned_text}\n\n"
-        f"ANCIENT ANCHOR CATALOGUE (choose from this list only):\n{anchor_list}\n\n"
-        f"Return JSON:\n"
-        f'{{\n'
-        f'  "civilisation": "Ancient civilisation or site this script centres on",\n'
-        f'  "anchor": "Full anchor text copied exactly from the catalogue",\n'
-        f'  "anchor_domain": "Domain code from the catalogue",\n'
-        f'  "angle": "One sentence — the specific lens making this anchor feel profound and immediate in the dark. No colon.",\n'
-        f'  "pov": "One of: second person | first person plural (we) | third person omniscient restrained | false documentary (field notes) | nested narration | no narrator (pure phenomena) | first person singular dissolving into report | second person plural",\n'
-        f'  "distance": "One of: maximum intimacy | forensic distance | historical distance | dissolving distance | unreliable proximity | absolute removal",\n'
-        f'  "para": "One of: paragraphs compress as script progresses | alternating long/short rhythm | single unbroken block | each paragraph shorter than previous | fragments only | normal prose fragmenting in final third | paragraphs expand as script progresses | two sentences per paragraph maximum",\n'
-        f'  "constraint": "One specific hard constraint not in structural history above",\n'
-        f'  "reasoning": "One sentence why this anchor serves this title and this audience"\n'
-        f'}}\n\nReturn only the JSON object.'
-    )
+        system = (
+            "You are an expert ancient history YouTube script architect specialising in meditative "
+            "sleep documentary content for ages 45-65+.\n\n"
+            "You generate divergence protocols — pre-script briefs ensuring each script is structurally "
+            "unique and grounded in a specific real verifiable archaeological or historical fact.\n\n"
+            "ANCHOR RULE: Choose ONLY from the provided Ancient Anchor Catalogue. "
+            "Do not invent anchors. Every anchor is real, verifiable, and immediately graspable in the dark. "
+            "If the title references a specific civilisation or site, prioritise that civilisation's anchors. "
+            "Avoid anchors flagged [RECENTLY USED].\n\n"
+            "STRUCTURAL ROTATION RULE: Choose POV, distance, para structure, and constraint "
+            "not appearing in recent scripts. Every script must feel structurally different.\n\n"
+            "Output only valid JSON."
+        )
+        user = (
+            f'Video title: "{title}"\n\n'
+            f"{history_text}"
+            f"Manual banned structural moves:\n{banned_text}\n\n"
+            f"ANCIENT ANCHOR CATALOGUE (choose from this list only):\n{anchor_list}\n\n"
+            f"Return JSON:\n"
+            f'{{\n'
+            f'  "civilisation": "Ancient civilisation or site this script centres on",\n'
+            f'  "anchor": "Full anchor text copied exactly from the catalogue",\n'
+            f'  "anchor_domain": "Domain code from the catalogue",\n'
+            f'  "angle": "One sentence — the specific lens making this anchor feel profound and immediate in the dark. No colon.",\n'
+            f'  "pov": "One of: second person | first person plural (we) | third person omniscient restrained | false documentary (field notes) | nested narration | no narrator (pure phenomena) | first person singular dissolving into report | second person plural",\n'
+            f'  "distance": "One of: maximum intimacy | forensic distance | historical distance | dissolving distance | unreliable proximity | absolute removal",\n'
+            f'  "para": "One of: paragraphs compress as script progresses | alternating long/short rhythm | single unbroken block | each paragraph shorter than previous | fragments only | normal prose fragmenting in final third | paragraphs expand as script progresses | two sentences per paragraph maximum",\n'
+            f'  "constraint": "One specific hard constraint not in structural history above",\n'
+            f'  "reasoning": "One sentence why this anchor serves this title and this audience"\n'
+            f'}}\n\nReturn only the JSON object.'
+        )
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
