@@ -894,16 +894,20 @@ def generate_ancient_protocol_from_title(title: str, banned: list, api_key: str,
             "not appearing in recent scripts. Every script must feel structurally different.\n\n"
             "Output only valid JSON."
         )
+        pa_civ = preset_anchor.get("civilisation", "")
+        pa_domain = preset_anchor.get("anchor_domain", "custom")
+        pa_anchor = preset_anchor["anchor"]
         user = (
             f'Video title: "{title}"\n\n'
             f"{history_text}"
             f"Manual banned structural moves:\n{banned_text}\n\n"
             f"{anchor_context}"
-            f"Return JSON:\n"
+            f"Return JSON. Copy the civilisation, anchor, and anchor_domain exactly from above. "
+            f"Fill in angle, pov, distance, para, constraint, reasoning:\n"
             f'{{\n'
-            f'  "civilisation": "{preset_anchor.get("civilisation", "")}",\n'
-            f'  "anchor": "{preset_anchor["anchor"]}",\n'
-            f'  "anchor_domain": "{preset_anchor.get("anchor_domain", "custom")}",\n'
+            f'  "civilisation": "copy from above",\n'
+            f'  "anchor": "copy from above",\n'
+            f'  "anchor_domain": "copy from above",\n'
             f'  "angle": "One sentence — the specific lens making this anchor feel profound and immediate in the dark. No colon.",\n'
             f'  "pov": "One of: second person | first person plural (we) | third person omniscient restrained | false documentary (field notes) | nested narration | no narrator (pure phenomena) | first person singular dissolving into report | second person plural",\n'
             f'  "distance": "One of: maximum intimacy | forensic distance | historical distance | dissolving distance | unreliable proximity | absolute removal",\n'
@@ -981,7 +985,13 @@ def generate_ancient_protocol_from_title(title: str, banned: list, api_key: str,
     try:
         start = raw.index("{")
         end = raw.rindex("}") + 1
-        return json.loads(raw[start:end])
+        result = json.loads(raw[start:end])
+        # If a preset anchor was used, force exact values back in (model may paraphrase)
+        if preset_anchor and preset_anchor.get("anchor"):
+            result["anchor"] = preset_anchor["anchor"]
+            result["civilisation"] = preset_anchor.get("civilisation", result.get("civilisation", ""))
+            result["anchor_domain"] = preset_anchor.get("anchor_domain", result.get("anchor_domain", "custom"))
+        return result
     except Exception:
         return {
             "civilisation": "Göbekli Tepe / Pre-Agricultural Builders",
