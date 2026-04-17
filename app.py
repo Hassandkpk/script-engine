@@ -1095,7 +1095,8 @@ if page == "Ancient Script Builder":
             if st.session_state.anc_intro_audit:
                 _render_audit(st.session_state.anc_intro_audit)
                 audit = st.session_state.anc_intro_audit
-                if audit.get("total_issues", 0) > 0:
+                has_flags = any(audit.get(k) for k in ("opener_flags","repetition_flags","rhythm_flags","outline_flags","redundancy_flags"))
+                if audit.get("total_issues", 0) > 0 or has_flags:
                     st.markdown("")
                     if st.button("✦ Revise to fix audit issues", key="anc_revise_intro"):
                         with st.spinner("Revising based on audit..."):
@@ -1186,7 +1187,8 @@ if page == "Ancient Script Builder":
                 if st.session_state.anc_audit:
                     _render_audit(st.session_state.anc_audit)
                     audit = st.session_state.anc_audit
-                    if audit.get("total_issues", 0) > 0:
+                    has_flags = any(audit.get(k) for k in ("opener_flags","repetition_flags","rhythm_flags","outline_flags","redundancy_flags"))
+                    if audit.get("total_issues", 0) > 0 or has_flags:
                         st.markdown("")
                         if st.button("✦ Revise section to fix audit issues", key="anc_revise_sec"):
                             with st.spinner("Revising section based on audit..."):
@@ -1982,7 +1984,8 @@ if page == "Divergence Protocol":
             if st.session_state.pro_intro_audit:
                 _render_audit(st.session_state.pro_intro_audit)
                 audit = st.session_state.pro_intro_audit
-                if audit.get("total_issues", 0) > 0:
+                has_flags = any(audit.get(k) for k in ("opener_flags","repetition_flags","rhythm_flags","outline_flags","redundancy_flags"))
+                if audit.get("total_issues", 0) > 0 or has_flags:
                     st.markdown("")
                     if st.button("✦ Revise intro to fix audit issues", key="pro_revise_intro"):
                         with st.spinner("Revising intro based on audit..."):
