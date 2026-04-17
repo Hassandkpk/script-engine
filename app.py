@@ -649,14 +649,14 @@ def _render_audit(audit: dict):
 if page == "Ancient Script Builder":
     st.markdown("<div class='sp-hero-label'>Ancient Stories — Hassan Ali</div>", unsafe_allow_html=True)
     st.markdown("<div class='sp-hero-title'>Ancient Script Builder</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sp-hero-sub'>Enter your title. Specter builds an Ancient Divergence Protocol, generates a custom 18-section outline, then writes each section — same step-by-step discipline as the Cosmic Horror builder.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sp-hero-sub'>Enter your title. Specter builds an Ancient Divergence Protocol, generates a custom 18-section outline, and checks uniqueness — then packages everything for you to copy into any AI writing tool.</div>", unsafe_allow_html=True)
     st.markdown("")
 
     if not st.session_state.api_key:
         st.warning("Add your Anthropic API key in the sidebar.")
 
     # Step progress — mirrors Divergence Protocol
-    anc_step_labels = ["Title", "Protocol", "Outline", "Outline Check", "Writing"]
+    anc_step_labels = ["Title", "Protocol", "Outline", "Outline Check", "Export"]
     anc_current = st.session_state.anc_step
     cols = st.columns(len(anc_step_labels))
     for i, (col, label) in enumerate(zip(cols, anc_step_labels)):
@@ -1031,7 +1031,7 @@ if page == "Ancient Script Builder":
                             st.session_state.anc_step = 2
                             st.rerun()
                 else:
-                    if st.button("Confirmed — begin writing 18 sections →", key="anc_begin_writing"):
+                    if st.button("Confirmed — export data →", key="anc_begin_writing"):
                         st.session_state.anc_step = 5
                         st.rerun()
         else:
@@ -1039,201 +1039,74 @@ if page == "Ancient Script Builder":
             st.markdown(f"<div class='sp-locked-badge'>✓ Uniqueness: {r.get('status','verified').upper()}</div>", unsafe_allow_html=True)
 
     # =====================================================================
-    # STEP 5 — WRITING (18 sections)
+    # STEP 5 — EXPORT
     # =====================================================================
     if st.session_state.anc_step >= 5:
         st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='sp-section-label'>Step 5 — Writing</div>", unsafe_allow_html=True)
+        st.markdown("<div class='sp-section-label'>Step 5 — Export data</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:14px;color:#555;margin-bottom:16px'>Your topic, divergence protocol, and full outline are ready. Copy this into any AI writing tool to generate your script.</div>", unsafe_allow_html=True)
 
-        title = st.session_state.anc_title
-        protocol_text = st.session_state.anc_protocol_text
-        outline = st.session_state.anc_outline
-        approved = st.session_state.anc_sections
-        sec_num = st.session_state.anc_section_num
-        total_sections = outline.get("total_sections", 18)
+        _p = st.session_state.anc_protocol
+        _outline = st.session_state.anc_outline
+        _title = st.session_state.anc_title
 
-        # --- INTRO (Section 1) ---
-        sections_list_all = outline.get("sections", [])
-        sec1_data = next((s for s in sections_list_all if s.get("num") == 1), {})
-        sec1_heading = sec1_data.get("heading", "The Invitation")
-        st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>Section 1: {sec1_heading}</div>", unsafe_allow_html=True)
+        _lines = []
+        _lines.append(f"Topic: {_title}")
+        _lines.append("")
+        _lines.append("DIVERGENCE PROTOCOL")
+        _lines.append("=" * 50)
+        _lines.append("")
+        _lines.append(f"Reality Anchor ({_p.get('civilisation', '')})")
+        _lines.append(_p.get("anchor", ""))
+        _lines.append("")
+        _lines.append("Entry Angle")
+        _lines.append(_p.get("angle", ""))
+        _lines.append("")
+        _lines.append("Point of View")
+        _lines.append(_p.get("pov", ""))
+        _lines.append("")
+        _lines.append("Narrative Distance")
+        _lines.append(_p.get("distance", ""))
+        _lines.append("")
+        _lines.append("Paragraph Structure")
+        _lines.append(_p.get("para", ""))
+        _lines.append("")
+        _lines.append("Hard Constraint")
+        _lines.append(_p.get("constraint", ""))
+        _lines.append("")
+        _lines.append("")
+        _lines.append("OUTLINE")
+        _lines.append("=" * 50)
+        if _outline.get("central_argument"):
+            _lines.append(f"Central Argument: {_outline['central_argument']}")
+            _lines.append("")
+        for _sec in _outline.get("sections", []):
+            _lines.append(f"Section {_sec.get('num', '?')}: {_sec.get('heading', '')}")
+            if _sec.get("argument"):
+                _lines.append(f"Argument: {_sec['argument']}")
+            if _sec.get("evidence"):
+                _lines.append(f"Evidence: {_sec['evidence']}")
+            if _sec.get("reframe"):
+                _lines.append(f"Reframe: {_sec['reframe']}")
+            if _sec.get("focus") and not _sec.get("argument"):
+                _lines.append(f"Focus: {_sec['focus']}")
+            _lines.append("")
 
-        if not st.session_state.anc_intro_approved:
-            if not st.session_state.anc_intro_text:
-                with st.spinner("Writing Section 1 — The Invitation..."):
-                    intro = generate_ancient_intro(title, protocol_text, outline, st.session_state.api_key)
-                    st.session_state.anc_intro_text = intro
-                    st.session_state.anc_intro_audit = None
-                st.rerun()
+        _export_text = "\n".join(_lines)
 
-            edited_intro = st.text_area("Section 1", value=st.session_state.anc_intro_text,
-                                         height=300, label_visibility="collapsed", key="anc_intro_area")
-            wc = len(edited_intro.split())
-            st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
-
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                if st.button("↻ Regenerate", key="anc_regen_intro"):
-                    st.session_state.anc_intro_text = ""
-                    st.session_state.anc_intro_audit = None
-                    st.rerun()
-            with col2:
-                if st.button("🔍 Run audit", key="anc_audit_intro"):
-                    with st.spinner("Auditing..."):
-                        st.session_state.anc_intro_audit = audit_section(
-                            edited_intro, {"heading": sec1_heading, "focus": sec1_data.get("focus","")}, 1, st.session_state.api_key
-                        )
-                        st.session_state.anc_intro_text = edited_intro
-                    st.rerun()
-            with col3:
-                if st.button("✓ Approve → Section 2", key="anc_approve_intro"):
-                    st.session_state.anc_intro_text = edited_intro
-                    st.session_state.anc_intro_approved = True
-                    st.session_state.anc_intro_audit = None
-                    st.rerun()
-
-            if st.session_state.anc_intro_audit:
-                _render_audit(st.session_state.anc_intro_audit)
-                audit = st.session_state.anc_intro_audit
-                has_flags = any(audit.get(k) for k in ("opener_flags","repetition_flags","rhythm_flags","outline_flags","redundancy_flags"))
-                if audit.get("total_issues", 0) > 0 or has_flags:
-                    st.markdown("")
-                    if st.button("✦ Revise to fix audit issues", key="anc_revise_intro"):
-                        with st.spinner("Revising based on audit..."):
-                            revised = revise_ancient_section_from_audit(
-                                st.session_state.anc_intro_text, audit, title, st.session_state.api_key
-                            )
-                            st.session_state.anc_intro_text = revised
-                            st.session_state.anc_intro_audit = None
-                        st.rerun()
-
-        else:
-            st.markdown(f"<div class='sp-locked-badge'>✓ Section 1 approved ({len(st.session_state.anc_intro_text.split())} words)</div>", unsafe_allow_html=True)
-
-            # --- BODY SECTIONS 2-18 ---
-            if approved:
-                total_words = sum(len(s.split()) for s in approved)
-                st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin-bottom:8px'>{len(approved)} of {total_sections - 1} body sections approved · ~{total_words:,} words</div>", unsafe_allow_html=True)
-                for i, sec_text in enumerate(approved):
-                    sec_data_i = next((s for s in sections_list_all if s.get("num") == i+2), {})
-                    heading_i = sec_data_i.get("heading", f"Section {i+2}")
-                    with st.expander(f"✓ Section {i+2}: {heading_i}"):
-                        st.text_area("", value=sec_text, height=150, label_visibility="collapsed",
-                                     key=f"anc_approved_{i}", disabled=True)
-
-        if not st.session_state.anc_assembled_done and st.session_state.anc_intro_approved:
-            all_done = len(approved) >= (total_sections - 1)
-
-            if not all_done:
-                sections_list = outline.get("sections", [])
-                current_sec_data = next((s for s in sections_list if s.get("num") == sec_num), {})
-                current_heading = current_sec_data.get("heading", f"Section {sec_num}")
-
-                st.markdown(f"<div style='font-size:15px;font-weight:600;color:#111;margin:16px 0 8px'>Section {sec_num} of {total_sections}: {current_heading}</div>", unsafe_allow_html=True)
-
-                if not st.session_state.anc_pending:
-                    all_approved_so_far = [st.session_state.anc_intro_text] + approved
-                    with st.spinner(f"Writing section {sec_num} of {total_sections}..."):
-                        sec_text = generate_ancient_section(
-                            title, protocol_text, outline, sec_num,
-                            all_approved_so_far, st.session_state.api_key
-                        )
-                        st.session_state.anc_pending = sec_text
-                        st.session_state.anc_audit = None
-                    st.rerun()
-
-                edited_sec = st.text_area(
-                    f"Section {sec_num}", value=st.session_state.anc_pending,
-                    height=350, label_visibility="collapsed", key=f"anc_pending_area_{sec_num}"
-                )
-                wc = len(edited_sec.split())
-                st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
-
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    if st.button("↻ Regenerate", key="anc_regen_sec"):
-                        st.session_state.anc_pending = ""
-                        st.session_state.anc_audit = None
-                        st.rerun()
-                with col2:
-                    if st.button("🔍 Run audit", key="anc_audit_sec"):
-                        with st.spinner("Auditing..."):
-                            audit_outline_sec = {
-                                "heading": current_heading,
-                                "focus": current_sec_data.get("focus", ""),
-                                "bullets": current_sec_data.get("bullets", [])
-                            }
-                            st.session_state.anc_audit = audit_section(
-                                edited_sec, audit_outline_sec, sec_num, st.session_state.api_key
-                            )
-                            st.session_state.anc_pending = edited_sec
-                        st.rerun()
-                with col3:
-                    next_label = f"✓ Approve → {sec_num+1}" if sec_num < total_sections else "✓ Approve → Assemble"
-                    if st.button(next_label, key="anc_approve_sec"):
-                        st.session_state.anc_sections.append(edited_sec)
-                        st.session_state.anc_section_num += 1
-                        st.session_state.anc_pending = ""
-                        st.session_state.anc_audit = None
-                        st.rerun()
-                with col4:
-                    if st.button("⏹ Wrap up early", key="anc_stop_early"):
-                        st.session_state.anc_sections.append(edited_sec)
-                        st.session_state.anc_section_num = total_sections + 1
-                        st.session_state.anc_pending = ""
-                        st.session_state.anc_audit = None
-                        st.rerun()
-
-                if st.session_state.anc_audit:
-                    _render_audit(st.session_state.anc_audit)
-                    audit = st.session_state.anc_audit
-                    has_flags = any(audit.get(k) for k in ("opener_flags","repetition_flags","rhythm_flags","outline_flags","redundancy_flags"))
-                    if audit.get("total_issues", 0) > 0 or has_flags:
-                        st.markdown("")
-                        if st.button("✦ Revise section to fix audit issues", key="anc_revise_sec"):
-                            with st.spinner("Revising section based on audit..."):
-                                revised = revise_ancient_section_from_audit(
-                                    st.session_state.anc_pending,
-                                    audit, title, st.session_state.api_key
-                                )
-                                st.session_state.anc_pending = revised
-                                st.session_state.anc_audit = None
-                            st.rerun()
-
-            else:
-                # Assemble intro + all body sections
-                if not st.session_state.anc_assembled:
-                    all_parts = [st.session_state.anc_intro_text] + approved
-                    assembled = "\n\n".join(all_parts)
-                    st.session_state.anc_assembled = assembled
-                    st.session_state.anc_assembled_done = True
-                    new_record = {
-                        "id": script_num,
-                        "date": datetime.now().isoformat(),
-                        "protocol": st.session_state.anc_protocol_text,
-                        "script": assembled,
-                        "anchor": st.session_state.anc_protocol.get("anchor",""),
-                        "pov": st.session_state.anc_protocol.get("pov",""),
-                        "constraint": st.session_state.anc_protocol.get("constraint",""),
-                        "word_target": "15,000 words (ancient stories)",
-                        "tone": "meditative",
-                    }
-                    save_ancient_script(new_record)
-                    st.rerun()
-
-        if st.session_state.anc_assembled_done and st.session_state.anc_assembled:
-            st.markdown("<hr class='sp-divider'>", unsafe_allow_html=True)
-            total_words = len(st.session_state.anc_assembled.split())
-            st.markdown(f"<div class='sp-locked-badge'>✓ Script complete — {total_words:,} words — saved as #{script_num-1:03d}</div>", unsafe_allow_html=True)
-            st.text_area("", value=st.session_state.anc_assembled, height=500,
-                         label_visibility="collapsed", key="anc_assembled_view")
-            col1, col2 = st.columns(2)
-            with col1:
-                pdf = export_pdf(st.session_state.anc_assembled, script_num-1)
-                st.download_button("↓ Download PDF", pdf, file_name=f"script_{script_num-1:03d}.pdf", mime="application/pdf")
-            with col2:
-                docx = export_docx(st.session_state.anc_assembled, script_num-1)
-                st.download_button("↓ Download Word", docx, file_name=f"script_{script_num-1:03d}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        st.text_area(
+            "Copy this data",
+            value=_export_text,
+            height=500,
+            label_visibility="collapsed",
+            key="anc_export_area"
+        )
+        st.download_button(
+            "↓ Download as .txt",
+            data=_export_text,
+            file_name=f"ancient_script_data_{_title[:40].replace(' ','_')}.txt",
+            mime="text/plain"
+        )
 
 
 if page == "Topic Discovery":
