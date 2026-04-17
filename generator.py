@@ -1318,18 +1318,46 @@ def generate_ancient_section(title: str, protocol_text: str, outline: dict, sect
             "This is the section where the argument moves from 'this happened' to 'here is how it worked'.\n"
             "Deploy the evidence from the outline. Execute the reframe pivot."
         )
-    else:  # sections 2-4
+    elif section_num == 2:
         special = (
-            "SECTIONS 2-4 — THE FOUNDATION:\n"
-            "Lay the historical and textual groundwork that makes the central argument possible.\n"
-            "Name the actual sources: which tablets, which texts, which archaeological findings.\n"
-            "Build toward the mechanism — by the end of section 4, the listener should understand "
-            "WHY the evidence points toward the title's claim, not just WHAT the evidence is.\n"
-            "End each section with a question or tension that section 5 will begin to resolve."
+            "SECTION 2 — THE WORLD BEFORE:\n"
+            "Establish the historical setting and civilisational context that makes the script's claim possible.\n"
+            "Answer: what was the world like before the thing the title describes came into being?\n"
+            "Name the era, the geography, the key powers. Ground the listener in time and place.\n"
+            "End with a tension: something about this world that makes the title's claim feel inevitable."
+        )
+    elif section_num == 3:
+        special = (
+            "SECTION 3 — THE FIRST EVIDENCE:\n"
+            "Introduce the earliest and most foundational piece of primary evidence for the script's argument.\n"
+            "Name a specific tablet, inscription, site, or text. Quote it directly if possible.\n"
+            "Do NOT repeat context from section 2 — the listener already knows the setting.\n"
+            "This section's job: show the listener the first crack in the conventional story.\n"
+            "End with: what this single piece of evidence already implies, if taken seriously."
+        )
+    else:  # section 4
+        special = (
+            "SECTION 4 — THE PATTERN EMERGES:\n"
+            "Take the evidence introduced in section 3 and show it is not an isolated anomaly — it is a pattern.\n"
+            "Add 2-3 additional sources that corroborate the same underlying dynamic.\n"
+            "Do NOT re-describe the section 3 evidence — reference it briefly and move forward.\n"
+            "By the end: the listener should feel the weight of the accumulated evidence.\n"
+            "Close with the question that sections 5-7 will answer: HOW did this system actually operate?"
         )
 
     prior = "\n\n---\n\n".join(approved_parts[-2:]) if approved_parts else ""
     prior_text = f"APPROVED CONTENT SO FAR (last 2 sections — maintain continuity, do not repeat):\n{prior}\n\n" if prior else ""
+
+    # List all approved headings so the model knows what ground has already been covered
+    if approved_parts and len(approved_parts) > 0:
+        all_sections = outline.get("sections", [])
+        covered = []
+        for i, _ in enumerate(approved_parts):
+            sec_i = next((s for s in all_sections if s.get("num") == i + 1), {})
+            h = sec_i.get("heading", f"Section {i+1}")
+            covered.append(f"  - Section {i+1}: {h}")
+        if covered:
+            prior_text += "SECTIONS ALREADY WRITTEN (do not revisit their ground):\n" + "\n".join(covered) + "\n\n"
 
     system = (
         "You are a senior ancient history documentary writer — the kind whose work gets compared to "
