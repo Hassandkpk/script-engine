@@ -1144,7 +1144,7 @@ if page == "Ancient Script Builder":
 
                 edited_sec = st.text_area(
                     f"Section {sec_num}", value=st.session_state.anc_pending,
-                    height=350, label_visibility="collapsed", key="anc_pending_area"
+                    height=350, label_visibility="collapsed", key=f"anc_pending_area_{sec_num}"
                 )
                 wc = len(edited_sec.split())
                 st.markdown(f"<div style='font-size:13px;color:#aaa;text-align:right'>{wc} words</div>", unsafe_allow_html=True)
